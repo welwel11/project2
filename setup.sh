@@ -690,14 +690,6 @@ print_install "Menginstall Fail2ban"
 #/etc/init.d/fail2ban restart
 #/etc/init.d/fail2ban status
 
-# Instal DDOS Flate
-if [ -d '/usr/local/ddos' ]; then
-	echo; echo; echo "Please un-install the previous version first"
-	exit 0
-else
-	mkdir /usr/local/ddos
-fi
-
 clear
 # banner
 echo "Banner /etc/kyt.txt" >>/etc/ssh/sshd_config
@@ -823,7 +815,7 @@ cat >/etc/cron.d/xp_all <<-END
     cat >/etc/cron.d/daily_reboot <<-END
 		SHELL=/bin/sh
 		PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-		0 5 * * * root /sbin/reboot
+		0 3 * * * root /sbin/reboot
 	END
     cat >/etc/cron.d/limit_ip <<-END
 		SHELL=/bin/sh
