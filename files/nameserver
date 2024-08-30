@@ -3,9 +3,11 @@ REPOS="https://github.com/SETANTAZVPN/abc/raw/ipuk/"
 ns_domain_cloudflare() {
 	DOMAIN="vpnshop.my.id"
 	DOMAIN_PATH=$(cat /etc/xray/domain)
-	SUB=${sub}
-	SUB_DOMAIN=${sub}
-	NS_DOMAIN=${SUB_DOMAIN}
+	clear
+	figlet "slowdns" | lolcat
+    read -rp "Masukkan Nameserver: " -e sub
+    SUB_DOMAIN=${sub}
+    NS_DOMAIN=${SUB_DOMAIN}
 	CF_ID=bayuagungriadi000@gmail.com
         CF_KEY=1fe3862ce9cdc01cfc82d1fb8556d64755842
 	set -euo pipefail
