@@ -8,6 +8,8 @@ ns_domain_cloudflare() {
     read -rp "Masukkan Nameserver: " -e sub
     SUB_DOMAIN=${sub}
     NS_DOMAIN=${SUB_DOMAIN}
+    CF_ID=${CF_ID}
+    CF_KEY=${CF_KEY}
 	set -euo pipefail
 	IP=$(wget -qO- ipinfo.io/ip)
 	echo "Updating DNS NS for ${NS_DOMAIN}..."
