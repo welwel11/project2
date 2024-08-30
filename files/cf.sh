@@ -10,10 +10,10 @@ echo ""
 echo ""
 #sub=$(</dev/urandom tr -dc a-z0-9 | head -c3)
 read -rp "Input Domain Name. Example ( kontol12 ): " -e sub
-DOMAIN=jnstore.biz.id
-SUB_DOMAIN=${sub}.jnstore.biz.id
-CF_ID=jonijoni199210@gmail.com
-CF_KEY=b3179931dedce6aaad8692d44422639b81921
+DOMAIN=
+SUB_DOMAIN=${sub}.
+CF_ID=
+CF_KEY=
 set -euo pipefail
 IP=$(curl -sS ifconfig.me);
 echo "Updating DNS for ${SUB_DOMAIN}..."
