@@ -1,5 +1,6 @@
 #!/bin/sh
 ns_domain_cloudflare() {
+REPOS="https://github.com/SETANTAZVPN/abc/raw/ipuk/"
 	DOMAIN="vpnshop.my.id"
 	DOMAIN_PATH=$(cat /etc/xray/domain)
 	SUB=$(tr </dev/urandom -dc a-z0-9 | head -c7)
