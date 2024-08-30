@@ -231,21 +231,20 @@ clear
 function pasang_domain() {
 echo -e ""
 clear
-# Fungsi input domain
-function pasang_domain() {
-echo -e ""
-clear
-echo -e "  .==========================================."
-echo -e "   |\e[1;32mSETUP DOMAIN CLOUDFLARE \e[0m|"
-echo -e "   '=========================================='"
-echo -e "     \e[1;32m1)\e[0m Menggunakan Domain Pribadi"
-echo -e "     \e[1;32m2)\e[0m Menggunakan Domain Bawaan"
-echo -e "   =========================================="
-read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) to continue with the domain script : " host
+echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e " \e[1;32mPlease Select a Domain \e[0m"
+echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e " \e[1;32m1)\e[0m Menggunakan Domain Sendiri"
+echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+read -p " Please select numbers 1 Any Button : " host
 echo ""
 if [[ $host == "1" ]]; then
-echo -e "   \e[1;32mMasukan Domain Anda ! $NC"
-read -p "   Subdomain: " host1
+echo -e " \e[1;32mPlease Enter Your Subdomain $NC"
+echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e ""
+read -p " Masukan Domain : " host1
+echo -e ""
+echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 echo "IP=" >> /var/lib/kyt/ipvps.conf
 echo $host1 > /etc/xray/domain
 echo $host1 > /root/domain
