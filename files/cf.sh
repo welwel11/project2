@@ -11,7 +11,7 @@ echo ""
 echo ""
 
 # Input subdomain dari user
-read -rp "Input Domain Name. Example (kontol12): " -e sub
+read -rp "Masukan Nama Domain: " -e sub
 DOMAIN=jnstore.biz.id
 SUB_DOMAIN=${sub}.jnstore.biz.id
 CF_ID=jonijoni199210@gmail.com
