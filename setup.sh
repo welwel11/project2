@@ -608,6 +608,15 @@ rm -rf /root/vnstat-2.6
 print_success "Vnstat"
 }
 
+function ins_openvpn(){
+clear
+print_install "Menginstall OpenVPN"
+#OpenVPN
+wget ${REPO}files/openvpn &&  chmod +x openvpn && ./openvpn
+/etc/init.d/openvpn restart
+print_success "OpenVPN"
+}
+
 function ins_backup(){
 clear
 print_install "Memasang Backup Server"
@@ -733,6 +742,7 @@ function ins_restart(){
 clear
 print_install "Restarting  All Packet"
 /etc/init.d/nginx restart
+/etc/init.d/openvpn restart
 /etc/init.d/ssh restart
 /etc/init.d/dropbear restart
 /etc/init.d/fail2ban restart
@@ -745,6 +755,7 @@ systemctl restart haproxy
     systemctl enable --now xray
     systemctl enable --now rc-local
     systemctl enable --now dropbear
+    systemctl enable --now openvpn
     systemctl enable --now cron
     systemctl enable --now haproxy
     systemctl enable --now netfilter-persistent
@@ -754,6 +765,7 @@ history -c
 echo "unset HISTFILE" >> /etc/profile
 
 cd
+rm -f /root/openvpn
 rm -f /root/key.pem
 rm -f /root/cert.pem
 print_success "All Packet"
@@ -892,6 +904,7 @@ clear
     ins_SSHD
     ins_dropbear
     ins_vnstat
+    ins_openvpn
     ins_backup
     ins_swab
     ins_Fail2ban
