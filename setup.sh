@@ -231,17 +231,20 @@ clear
 function pasang_domain() {
 echo -e ""
 clear
-echo -e "  .==========================================."
-echo -e "   |\e[1;32mSETUP DOMAIN CLOUDFLARE \e[0m|"
-echo -e "   '=========================================='"
-echo -e "     \e[1;32m1)\e[0m Domain Pribadi"
-echo -e "     \e[1;32m2)\e[0m Domain Bawaan"
-echo -e "   =========================================="
-read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
+echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e " \e[1;32mPlease Select a Domain \e[0m"
+echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e " \e[1;32m1)\e[0m Menggunakan Domain Sendiri"
+echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+read -p " Please select numbers 1 Any Button : " host
 echo ""
 if [[ $host == "1" ]]; then
-echo -e "   \e[1;32mMasukan Domain Anda ! $NC"
-read -p "   Subdomain: " host1
+echo -e " \e[1;32mPlease Enter Your Subdomain $NC"
+echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e ""
+read -p " Masukan Domain : " host1
+echo -e ""
+echo -e " ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 echo "IP=" >> /var/lib/kyt/ipvps.conf
 echo $host1 > /etc/xray/domain
 echo $host1 > /root/domain
@@ -608,15 +611,6 @@ rm -rf /root/vnstat-2.6
 print_success "Vnstat"
 }
 
-function ins_openvpn(){
-clear
-print_install "Menginstall OpenVPN"
-#OpenVPN
-wget ${REPO}files/openvpn &&  chmod +x openvpn && ./openvpn
-/etc/init.d/openvpn restart
-print_success "OpenVPN"
-}
-
 function ins_backup(){
 clear
 print_install "Memasang Backup Server"
@@ -742,7 +736,6 @@ function ins_restart(){
 clear
 print_install "Restarting  All Packet"
 /etc/init.d/nginx restart
-/etc/init.d/openvpn restart
 /etc/init.d/ssh restart
 /etc/init.d/dropbear restart
 /etc/init.d/fail2ban restart
@@ -755,7 +748,6 @@ systemctl restart haproxy
     systemctl enable --now xray
     systemctl enable --now rc-local
     systemctl enable --now dropbear
-    systemctl enable --now openvpn
     systemctl enable --now cron
     systemctl enable --now haproxy
     systemctl enable --now netfilter-persistent
@@ -765,7 +757,6 @@ history -c
 echo "unset HISTFILE" >> /etc/profile
 
 cd
-rm -f /root/openvpn
 rm -f /root/key.pem
 rm -f /root/cert.pem
 print_success "All Packet"
@@ -904,7 +895,6 @@ clear
     ins_SSHD
     ins_dropbear
     ins_vnstat
-    ins_openvpn
     ins_backup
     ins_swab
     ins_Fail2ban
