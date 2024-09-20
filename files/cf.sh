@@ -1,4 +1,5 @@
 #!/bin/bash
+YELLOW="\033[33m"
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # Install dependencies
@@ -11,7 +12,11 @@ echo ""
 echo ""
 
 # Input subdomain dari user
-read -rp "Masukan Nama Domain: " -e sub
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "SETUP DOMAIN CLOUDFLARE "
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+read -rp "Domain Random: " -e sub
 DOMAIN=jnstore.biz.id
 SUB_DOMAIN=${sub}.jnstore.biz.id
 CF_ID=jonijoni199210@gmail.com
