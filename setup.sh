@@ -682,6 +682,7 @@ gotop_latest="$(curl -s https://api.github.com/repos/xxxserxxx/gotop/releases | 
 function ins_DDoS_Flate(){
 clear
 print_install "Menginstall DDoS Flate"
+# Instal DDOS Flate
 if [ -d '/usr/local/ddos' ]; then
 	echo; echo; echo "Please un-install the previous version first"
 	exit 0
