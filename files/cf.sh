@@ -1,5 +1,6 @@
 #!/bin/bash
 YELLOW="\033[33m"
+green='\e[0;32m'
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # Install dependencies
@@ -12,10 +13,10 @@ echo ""
 echo ""
 
 # Input subdomain dari user
-echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "SETUP DOMAIN CLOUDFLARE "
-echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
 read -rp "Domain Random: " -e sub
 DOMAIN=jnstore.biz.id
 SUB_DOMAIN=${sub}.jnstore.biz.id
