@@ -234,8 +234,8 @@ clear
 echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "  SETUP DOMAIN CLOUDFLARE "
 echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "     Domain Pribadi"
-echo -e "     Domain Bawaan"
+echo -e "  [1] Domain Pribadi"
+echo -e "  [2] Domain Bawaan"
 echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
 echo ""
