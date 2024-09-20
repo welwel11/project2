@@ -231,12 +231,12 @@ clear
 function pasang_domain() {
 echo -e ""
 clear
-echo -e "  .==========================================."
-echo -e "   |\e[1;32mSETUP DOMAIN CLOUDFLARE \e[0m|"
-echo -e "   '=========================================='"
-echo -e "     \e[1;32m1)\e[0m Domain Pribadi"
-echo -e "     \e[1;32m2)\e[0m Domain Bawaan"
-echo -e "   =========================================="
+echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "  SETUP DOMAIN CLOUDFLARE "
+echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "     Domain Pribadi"
+echo -e "     Domain Bawaan"
+echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
 echo ""
 if [[ $host == "1" ]]; then
