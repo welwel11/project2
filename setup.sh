@@ -232,7 +232,7 @@ function pasang_domain() {
 echo -e ""
 clear
 echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-echo -e "  SETUP DOMAIN CLOUDFLARE "
+echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
 echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
 echo -e "  [1] Domain Pribadi"
 echo -e "  [2] Domain Bawaan"
