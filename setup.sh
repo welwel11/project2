@@ -231,12 +231,12 @@ clear
 function pasang_domain() {
 echo -e ""
 clear
-echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "   SETUP DOMAIN CLOUDFLARE "
-echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "  .==========================================."
+echo -e "   |\e[1;32mSETUP DOMAIN CLOUDFLARE \e[0m|"
+echo -e "   '=========================================='"
 echo -e "     \e[1;32m1)\e[0m Domain Pribadi"
 echo -e "     \e[1;32m2)\e[0m Domain Bawaan"
-echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "   =========================================="
 read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
 echo ""
 if [[ $host == "1" ]]; then
@@ -679,9 +679,14 @@ gotop_latest="$(curl -s https://api.github.com/repos/xxxserxxx/gotop/releases | 
     print_success "Swap 1 G"
 }
 
-function ins_DDoS_Flate(){
+function ins_Fail2ban(){
 clear
-print_install "Menginstall DDoS Flate"
+print_install "Menginstall Fail2ban"
+#apt -y install fail2ban > /dev/null 2>&1
+#sudo systemctl enable --now fail2ban
+#/etc/init.d/fail2ban restart
+#/etc/init.d/fail2ban status
+
 # Instal DDOS Flate
 if [ -d '/usr/local/ddos' ]; then
 	echo; echo; echo "Please un-install the previous version first"
@@ -708,21 +713,7 @@ echo '.....done'
 echo; echo 'Installation has completed.'
 echo 'Config file is at /usr/local/ddos/ddos.conf'
 echo 'Please send in your comments and/or suggestions to zaf@vsnl.com'
-print_success "DDos Flate"
-}
 
-
-function ins_Fail2ban(){
-clear
-print_install "Menginstall Fail2ban"
-#apt -y install fail2ban > /dev/null 2>&1
-#sudo systemctl enable --now fail2ban
-#/etc/init.d/fail2ban restart
-#/etc/init.d/fail2ban status
-print_success "Fail2ban"
-}
-
-function change_banner(){
 clear
 # banner
 echo "Banner /etc/kyt.txt" >>/etc/ssh/sshd_config
@@ -730,7 +721,7 @@ sed -i 's@DROPBEAR_BANNER=""@DROPBEAR_BANNER="/etc/kyt.txt"@g' /etc/default/drop
 
 # Ganti Banner
 wget -O /etc/kyt.txt "${REPO}files/issue.net"
-print_success "change banner"
+print_success "Fail2ban"
 }
 
 function ins_epro(){
