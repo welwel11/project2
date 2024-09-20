@@ -231,12 +231,12 @@ clear
 function pasang_domain() {
 echo -e ""
 clear
-echo -e "  .==========================================."
-echo -e "   |\e[1;32mSETUP DOMAIN CLOUDFLARE \e[0m|"
-echo -e "   '=========================================='"
+echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "   SETUP DOMAIN CLOUDFLARE "
+echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "     \e[1;32m1)\e[0m Domain Pribadi"
 echo -e "     \e[1;32m2)\e[0m Domain Bawaan"
-echo -e "   =========================================="
+echo -e "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
 echo ""
 if [[ $host == "1" ]]; then
@@ -679,6 +679,38 @@ gotop_latest="$(curl -s https://api.github.com/repos/xxxserxxx/gotop/releases | 
     print_success "Swap 1 G"
 }
 
+function ins_DDoS_Flate(){
+clear
+print_install "Menginstall DDoS Flate"
+if [ -d '/usr/local/ddos' ]; then
+	echo; echo; echo "Please un-install the previous version first"
+	exit 0
+else
+	mkdir /usr/local/ddos
+fi
+clear
+echo; echo 'Installing DOS-Deflate 0.6'; echo
+echo; echo -n 'Downloading source files...'
+wget -q -O /usr/local/ddos/ddos.conf http://www.inetbase.com/scripts/ddos/ddos.conf
+echo -n '.'
+wget -q -O /usr/local/ddos/LICENSE http://www.inetbase.com/scripts/ddos/LICENSE
+echo -n '.'
+wget -q -O /usr/local/ddos/ignore.ip.list http://www.inetbase.com/scripts/ddos/ignore.ip.list
+echo -n '.'
+wget -q -O /usr/local/ddos/ddos.sh http://www.inetbase.com/scripts/ddos/ddos.sh
+chmod 0755 /usr/local/ddos/ddos.sh
+cp -s /usr/local/ddos/ddos.sh /usr/local/sbin/ddos
+echo '...done'
+echo; echo -n 'Creating cron to run script every minute.....(Default setting)'
+/usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
+echo '.....done'
+echo; echo 'Installation has completed.'
+echo 'Config file is at /usr/local/ddos/ddos.conf'
+echo 'Please send in your comments and/or suggestions to zaf@vsnl.com'
+print_success "DDos Flate"
+}
+
+
 function ins_Fail2ban(){
 clear
 print_install "Menginstall Fail2ban"
@@ -686,7 +718,10 @@ print_install "Menginstall Fail2ban"
 #sudo systemctl enable --now fail2ban
 #/etc/init.d/fail2ban restart
 #/etc/init.d/fail2ban status
+print_success "Fail2ban"
+}
 
+function change_banner(){
 clear
 # banner
 echo "Banner /etc/kyt.txt" >>/etc/ssh/sshd_config
@@ -694,7 +729,7 @@ sed -i 's@DROPBEAR_BANNER=""@DROPBEAR_BANNER="/etc/kyt.txt"@g' /etc/default/drop
 
 # Ganti Banner
 wget -O /etc/kyt.txt "${REPO}files/issue.net"
-print_success "Fail2ban"
+print_success "change banner"
 }
 
 function ins_epro(){
