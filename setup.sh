@@ -760,7 +760,6 @@ function ins_restart(){
 clear
 print_install "Restarting  All Packet"
 /etc/init.d/nginx restart
-/etc/init.d/openvpn restart
 /etc/init.d/ssh restart
 /etc/init.d/dropbear restart
 /etc/init.d/fail2ban restart
@@ -782,7 +781,6 @@ history -c
 echo "unset HISTFILE" >> /etc/profile
 
 cd
-rm -f /root/openvpn
 rm -f /root/key.pem
 rm -f /root/cert.pem
 print_success "All Packet"
