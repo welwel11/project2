@@ -33,7 +33,7 @@ function con() {
 
   while true; do
   sleep 5
-  data=($(cat /etc/xray/config.json | grep '^###' | cut -d ' ' -f 2 | sort | uniq))
+  data=( `grep '^###' /etc/xray/config.json | cut -d ' ' -f 2 | sort | uniq` )
   if [[ ! -e /etc/limit/vmess ]]; then
   mkdir -p /etc/limit/vmess
   fi
