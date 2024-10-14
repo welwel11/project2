@@ -76,7 +76,7 @@ for user in ${data[@]}
       sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
       sed -i "/^### $user $exp/d" /etc/vmess/.vmess.db
       send-log
-      rm -rf /etc/limit/vmess/${user}
+      rm -rf /etc/limit/vmess/$user
       rm -f /etc/kyt/limit/vmess/ip/$user
 	  rm -f /etc/vmess/$user
 	  rm -f /etc/limit/vmess/$user
