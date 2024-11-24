@@ -18,8 +18,8 @@ echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
 echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
 echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
 read -rp "Domain Random: " -e sub
-DOMAIN=jnstore.biz.id
-SUB_DOMAIN=${sub}.jnstore.biz.id
+DOMAIN=jnstorevpn.biz.id
+SUB_DOMAIN=${sub}.jnstorevpn.biz.id
 CF_ID=jonijoni199210@gmail.com
 CF_KEY=b3179931dedce6aaad8692d44422639b81921
 set -euo pipefail
