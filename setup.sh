@@ -452,7 +452,7 @@ print_success "Konfigurasi Packet"
 function ssh(){
 clear
 print_install "Memasang Password SSH"
-wget -O /etc/pam.d/common-password "${REPO}files/password"
+wget -O /etc/pam.d/common-password "https://raw.githubusercontent.com/arivpnstores/v10/main/Fls/password"
 chmod +x /etc/pam.d/common-password
 
     DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
