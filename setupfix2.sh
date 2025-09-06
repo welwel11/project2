@@ -2,7 +2,7 @@
 # ===================================================
 # VPN Server Full Installer – Ubuntu 24+
 # Features: Dropbear, SSHD, SlowDNS, vnStat, Backup,
-# Swap, Fail2Ban, ePro, udp-mini, OpenVPN, Auto Reboot, Anti-DDOS
+# Swap, Fail2Ban, ePro, udp-mini, OpenVPN, Auto Reboot, Anti-DDOS, HAProxy
 # ===================================================
 
 Green="\e[92;1m"
@@ -49,7 +49,13 @@ first_setup() {
     timedatectl set-timezone Asia/Jakarta
     apt update -y && apt upgrade -y
     apt install -y software-properties-common unzip curl wget lsb-release net-tools
-    apt install -y haproxy ufw iptables iptables-persistent cron bash-completion figlet sudo htop lsof
+}
+
+install_haproxy() {
+    print_install "Installing HAProxy"
+    apt install -y haproxy
+    systemctl enable --now haproxy
+    print_success "HAProxy"
 }
 
 install_nginx() {
@@ -70,15 +76,11 @@ install_base_packages() {
 # =============================
 setup_anti_ddos() {
     print_install "Configuring basic Anti-DDoS"
-    # Limit SSH connections
     iptables -A INPUT -p tcp --dport 22 -m connlimit --connlimit-above 5 -j REJECT
-    # Limit HTTP/HTTPS connections
     iptables -A INPUT -p tcp --dport 80 -m connlimit --connlimit-above 50 -j REJECT
     iptables -A INPUT -p tcp --dport 443 -m connlimit --connlimit-above 50 -j REJECT
-    # Basic UDP flood prevention
     iptables -A INPUT -p udp -m limit --limit 25/minute --limit-burst 50 -j ACCEPT
     iptables -A INPUT -p udp -j DROP
-    # Save rules
     netfilter-persistent save
     netfilter-persistent reload
     print_success "Anti-DDoS rules applied"
@@ -214,6 +216,7 @@ setup_auto_reboot() {
 clear
 print_install "Starting full installation..."
 first_setup
+install_haproxy
 install_nginx
 install_base_packages
 setup_anti_ddos
