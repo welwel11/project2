@@ -48,7 +48,7 @@ print_error() { echo -e "${ERROR} $1"; }
 first_setup() {
     timedatectl set-timezone Asia/Jakarta
     apt update -y && apt upgrade -y
-    apt install -y software-properties-common unzip curl wget lsb-release net-tools
+    apt install -y software-properties-common unzip curl wget lsb-release net-tools iptables-persistent python-is-python3
 }
 
 install_haproxy() {
@@ -86,6 +86,31 @@ setup_anti_ddos() {
     print_success "Anti-DDoS rules applied"
 }
 
+# =============================
+# Folder & Directory Setup
+# =============================
+make_folders() {
+    print_install "Creating directories..."
+    # Xray & SSL
+    mkdir -p /etc/xray/ssl
+    chmod 700 /etc/xray/ssl
+    touch /etc/xray/domain
+    chmod 644 /etc/xray/domain
+
+    # Log folder
+    mkdir -p /var/log/xray
+    chmod 755 /var/log/xray
+
+    # Other folders
+    mkdir -p /etc/{vless,vmess,trojan,shadowsocks,ssh,bot,user-create}
+    mkdir -p /usr/local/sbin /var/www/html /etc/kyt/limit/{vmess,vless,trojan,ssh}/ip
+    touch /var/log/xray/{access.log,error.log}
+    print_success "Directories Created"
+}
+
+# =============================
+# Domain & SSL
+# =============================
 setup_domain() {
     read -p "Use custom domain? [y/n]: " choice
     if [[ "$choice" == "y" ]]; then
@@ -105,18 +130,14 @@ install_ssl() {
     chmod +x /root/.acme.sh/acme.sh
     /root/.acme.sh/acme.sh --issue -d $DOMAIN --standalone -k ec-256
     /root/.acme.sh/acme.sh --installcert -d $DOMAIN \
-        --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
-    chmod 644 /etc/xray/xray.key /etc/xray/xray.crt
+        --fullchainpath /etc/xray/ssl/xray.crt --keypath /etc/xray/ssl/xray.key --ecc
+    chmod 644 /etc/xray/ssl/xray.key /etc/xray/ssl/xray.crt
     print_success "SSL"
 }
 
-make_folders() {
-    mkdir -p /etc/{xray,vless,vmess,trojan,shadowsocks,ssh,bot,user-create}
-    mkdir -p /var/log/xray /usr/local/sbin /var/www/html /etc/kyt/limit/{vmess,vless,trojan,ssh}/ip
-    touch /etc/xray/domain /var/log/xray/{access.log,error.log}
-    print_success "Directories Created"
-}
-
+# =============================
+# Xray & Proxy Install
+# =============================
 install_xray() {
     bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version 1.8.23
     wget -O /etc/xray/config.json https://raw.githubusercontent.com/welwel11/project2/main/config/config.json
@@ -182,7 +203,7 @@ install_fail2ban() {
 install_epro() {
     wget -O /usr/bin/ws https://raw.githubusercontent.com/welwel11/project2/main/files/ws
     chmod +x /usr/bin/ws
-    systemctl enable --now ws
+    # Note: pastikan ws punya systemd unit jika ingin auto-start
     print_success "ePro WebSocket Proxy"
 }
 
