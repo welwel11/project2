@@ -1,9 +1,9 @@
 #!/bin/bash
-#=================================================
-# Quick VPN/Xray Server Installer Ubuntu 24
-# Support: SSHWS, HAProxy, Vmess, Vless, Trojan, UDP Mini, SlowDNS, Dropbear, vnStat, Backup, Fail2ban, ePro
-# Author:  / Github https://github.com/welwel11/project2
-#=================================================
+# ===================================================
+# VPN Server Full Installer – Ubuntu 24+
+# Features: Dropbear, SSHD, SlowDNS, vnStat, Backup,
+# Swap, Fail2Ban, ePro, udp-mini, OpenVPN, Auto Reboot, Anti-DDOS
+# ===================================================
 
 Green="\e[92;1m"
 RED="\033[31m"
@@ -12,216 +12,228 @@ BLUE="\033[36m"
 FONT="\033[0m"
 OK="${Green}  »${FONT}"
 ERROR="${RED}[ERROR]${FONT}"
+GRAY="\e[1;30m"
 NC='\e[0m'
 
-# Clear screen
 clear
+export IP=$(curl -sS icanhazip.com)
 
-# Get IP
-export IP=$(curl -sS icanhazip.com || curl -s ipinfo.io/ip)
-echo -e "${OK} VPS Public IP: ${Green}$IP${NC}"
+# =============================
+# Basic checks
+# =============================
+[ "$EUID" -ne 0 ] && echo -e "${ERROR} Please run as root" && exit 1
+[[ "$(systemd-detect-virt)" == "openvz" ]] && echo -e "${ERROR} OpenVZ not supported" && exit 1
 
-# Check root
-if [[ $EUID -ne 0 ]]; then
-    echo -e "${ERROR} Script must be run as root!"
-    exit 1
-fi
+ARCH=$(uname -m)
+[[ "$ARCH" != "x86_64" ]] && echo -e "${ERROR} Architecture $ARCH not supported" && exit 1
 
-# Check Ubuntu
-OS_ID=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
-OS_VER=$(grep -w VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
-if [[ "$OS_ID" != "ubuntu" ]]; then
-    echo -e "${ERROR} Only Ubuntu is supported"
-    exit 1
-fi
-echo -e "${OK} OS: Ubuntu $OS_VER"
+OS=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
+[[ "$OS" != "ubuntu" && "$OS" != "debian" ]] && echo -e "${ERROR} OS $OS not supported" && exit 1
 
-# Update & install dependencies
-echo -e "${OK} Installing dependencies..."
-apt update -y
-apt upgrade -y
-apt install -y software-properties-common curl wget unzip zip sudo git lsof \
-bash-completion figlet pwgen netcat socat chrony ntpdate iptables iptables-persistent \
-netfilter-persistent ufw nano python3 python3-pip ruby gem build-essential dnsutils \
-openssl cron htop tar p7zip-full ruby zip unzip ca-certificates gnupg \
-debconf-utils jq bc
+echo -e "${OK} Architecture: $ARCH"
+echo -e "${OK} OS: $(grep PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"')"
+echo -e "${OK} IP Address: $IP"
+read -p "$(echo -e "Press ${GRAY}[${NC}${Green}Enter${NC}${GRAY}]${NC} to start installation") "
 
-# Install lolcat for banner
-gem install lolcat
+# =============================
+# Utility functions
+# =============================
+print_install() { echo -e "${YELLOW}» $1${FONT}"; sleep 1; }
+print_success() { echo -e "${Green}» $1 installed${NC}"; sleep 1; }
+print_error() { echo -e "${ERROR} $1"; }
 
-# Set timezone
-timedatectl set-timezone Asia/Jakarta
+# =============================
+# System Setup
+# =============================
+first_setup() {
+    timedatectl set-timezone Asia/Jakarta
+    apt update -y && apt upgrade -y
+    apt install -y software-properties-common unzip curl wget lsb-release net-tools
+    apt install -y haproxy ufw iptables iptables-persistent cron bash-completion figlet sudo htop lsof
+}
 
-#=================================================
-# Directories & Permissions
-#=================================================
-mkdir -p /etc/xray /etc/vmess /etc/vless /etc/trojan /etc/shadowsocks /etc/ssh /etc/bot \
-/var/log/xray /usr/local/bin /var/lib/kyt /etc/kyt/limit/vmess/ip /etc/kyt/limit/vless/ip \
-/etc/kyt/limit/trojan/ip /etc/kyt/limit/ssh/ip /var/www/html
+install_nginx() {
+    apt install -y nginx
+    systemctl enable --now nginx
+    print_success "Nginx"
+}
 
-chmod +x /var/log/xray
-touch /var/log/xray/access.log
-touch /var/log/xray/error.log
-touch /etc/xray/domain
+install_base_packages() {
+    apt install -y zip pwgen openssl netcat socat rclone msmtp-mta ca-certificates bsd-mailx \
+        openvpn easy-rsa ruby python3-pip vnstat libsqlite3-dev
+    gem install lolcat
+    print_success "Base Packages"
+}
 
-#=================================================
-# HAProxy
-#=================================================
-echo -e "${OK} Installing HAProxy..."
-apt install -y haproxy
-systemctl enable haproxy
-systemctl start haproxy
+# =============================
+# Anti-DDoS Basic
+# =============================
+setup_anti_ddos() {
+    print_install "Configuring basic Anti-DDoS"
+    # Limit SSH connections
+    iptables -A INPUT -p tcp --dport 22 -m connlimit --connlimit-above 5 -j REJECT
+    # Limit HTTP/HTTPS connections
+    iptables -A INPUT -p tcp --dport 80 -m connlimit --connlimit-above 50 -j REJECT
+    iptables -A INPUT -p tcp --dport 443 -m connlimit --connlimit-above 50 -j REJECT
+    # Basic UDP flood prevention
+    iptables -A INPUT -p udp -m limit --limit 25/minute --limit-burst 50 -j ACCEPT
+    iptables -A INPUT -p udp -j DROP
+    # Save rules
+    netfilter-persistent save
+    netfilter-persistent reload
+    print_success "Anti-DDoS rules applied"
+}
 
-#=================================================
-# Nginx
-#=================================================
-echo -e "${OK} Installing Nginx..."
-apt install -y nginx
-systemctl enable nginx
-systemctl start nginx
+setup_domain() {
+    read -p "Use custom domain? [y/n]: " choice
+    if [[ "$choice" == "y" ]]; then
+        read -p "Enter domain/subdomain: " DOMAIN
+        echo "$DOMAIN" > /etc/xray/domain
+    else
+        wget -q https://raw.githubusercontent.com/welwel11/project2/main/files/cf.sh -O /tmp/cf.sh
+        chmod +x /tmp/cf.sh && /tmp/cf.sh && rm -f /tmp/cf.sh
+    fi
+    print_success "Domain"
+}
 
-#=================================================
-# Install Xray Core
-#=================================================
-echo -e "${OK} Installing Xray Core..."
-latest_version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n1)
-bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version 1.8.23
+install_ssl() {
+    DOMAIN=$(cat /etc/xray/domain)
+    mkdir -p /root/.acme.sh
+    curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
+    chmod +x /root/.acme.sh/acme.sh
+    /root/.acme.sh/acme.sh --issue -d $DOMAIN --standalone -k ec-256
+    /root/.acme.sh/acme.sh --installcert -d $DOMAIN \
+        --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+    chmod 644 /etc/xray/xray.key /etc/xray/xray.crt
+    print_success "SSL"
+}
 
-# Download default configs
-REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
-wget -O /etc/xray/config.json "${REPO}config/config.json"
-wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service"
-chmod +x /etc/systemd/system/runn.service
+make_folders() {
+    mkdir -p /etc/{xray,vless,vmess,trojan,shadowsocks,ssh,bot,user-create}
+    mkdir -p /var/log/xray /usr/local/sbin /var/www/html /etc/kyt/limit/{vmess,vless,trojan,ssh}/ip
+    touch /etc/xray/domain /var/log/xray/{access.log,error.log}
+    print_success "Directories Created"
+}
 
-#=================================================
-# Domain & SSL
-#=================================================
-read -p "Enter your domain/subdomain: " DOMAIN
-echo $DOMAIN > /etc/xray/domain
-echo $DOMAIN > /root/domain
+install_xray() {
+    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version 1.8.23
+    wget -O /etc/xray/config.json https://raw.githubusercontent.com/welwel11/project2/main/config/config.json
+    print_success "Xray"
+}
 
-# Install acme.sh & issue certificate
-mkdir -p /root/.acme.sh
-curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
-chmod +x /root/.acme.sh/acme.sh
-/root/.acme.sh/acme.sh --upgrade --auto-upgrade
-/root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-/root/.acme.sh/acme.sh --issue -d $DOMAIN --standalone -k ec-256
-~/.acme.sh/acme.sh --installcert -d $DOMAIN --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+install_dropbear() {
+    apt install -y dropbear
+    wget -O /etc/default/dropbear https://raw.githubusercontent.com/welwel11/project2/main/config/dropbear.conf
+    systemctl enable --now dropbear
+    print_success "Dropbear"
+}
 
-cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
+install_sshd() {
+    wget -O /etc/ssh/sshd_config https://raw.githubusercontent.com/welwel11/project2/main/files/sshd
+    systemctl restart ssh
+    print_success "SSHD"
+}
 
-#=================================================
-# SSH & Dropbear
-#=================================================
-echo -e "${OK} Installing Dropbear..."
-apt install -y dropbear
-wget -q -O /etc/default/dropbear "${REPO}config/dropbear.conf"
-systemctl enable dropbear
-systemctl restart dropbear
+install_vnstat() {
+    apt install -y vnstat libsqlite3-dev
+    vnstat -u -i eth0
+    systemctl enable --now vnstat
+    print_success "vnStat"
+}
 
-#=================================================
-# SSHWS (SSH over WebSocket)
-#=================================================
-echo -e "${OK} Installing SSHWS (SSH over WebSocket)..."
-wget -q -O /usr/local/bin/sshws "${REPO}files/sshws"
-chmod +x /usr/local/bin/sshws
+install_udp_mini() {
+    mkdir -p /usr/local/kyt
+    wget -q -O /usr/local/kyt/udp-mini https://raw.githubusercontent.com/welwel11/project2/main/files/udp-mini
+    chmod +x /usr/local/kyt/udp-mini
+    print_success "UDP Mini"
+}
 
-cat > /etc/systemd/system/sshws.service <<EOF
-[Unit]
-Description=SSH over WebSocket
-After=network.target
+install_slowdns() {
+    wget -q -O /tmp/nameserver https://raw.githubusercontent.com/welwel11/project2/main/files/nameserver
+    chmod +x /tmp/nameserver
+    bash /tmp/nameserver
+    print_success "SlowDNS"
+}
 
-[Service]
-ExecStart=/usr/local/bin/sshws
-Restart=on-failure
-User=root
-LimitNOFILE=65535
+install_backup() {
+    apt install -y rclone
+    mkdir -p /root/.config/rclone
+    wget -O /root/.config/rclone/rclone.conf https://raw.githubusercontent.com/welwel11/project2/main/config/rclone.conf
+    print_success "Backup"
+}
 
-[Install]
-WantedBy=multi-user.target
-EOF
+install_swap() {
+    dd if=/dev/zero of=/swapfile bs=1M count=1024
+    mkswap /swapfile
+    chmod 600 /swapfile
+    swapon /swapfile
+    echo "/swapfile swap swap defaults 0 0" >> /etc/fstab
+    print_success "Swap 1GB"
+}
 
-systemctl daemon-reload
-systemctl enable sshws
-systemctl start sshws
+install_fail2ban() {
+    apt install -y fail2ban
+    systemctl enable --now fail2ban
+    print_success "Fail2Ban"
+}
 
-#=================================================
-# UDP Mini & SlowDNS
-#=================================================
-wget -q -O /usr/local/kyt/udp-mini "${REPO}files/udp-mini"
-chmod +x /usr/local/kyt/udp-mini
-for i in 1 2 3; do
-    wget -q -O /etc/systemd/system/udp-mini-$i.service "${REPO}files/udp-mini-$i.service"
-    systemctl enable udp-mini-$i
-    systemctl start udp-mini-$i
-done
+install_epro() {
+    wget -O /usr/bin/ws https://raw.githubusercontent.com/welwel11/project2/main/files/ws
+    chmod +x /usr/bin/ws
+    systemctl enable --now ws
+    print_success "ePro WebSocket Proxy"
+}
 
-wget -q -O /tmp/nameserver "${REPO}files/nameserver"
-chmod +x /tmp/nameserver
-bash /tmp/nameserver | tee /root/install.log
+install_openvpn() {
+    apt install -y openvpn easy-rsa
+    print_success "OpenVPN"
+}
 
-#=================================================
-# vnStat
-#=================================================
-apt install -y vnstat libsqlite3-dev
-wget https://humdi.net/vnstat/vnstat-2.6.tar.gz
-tar zxvf vnstat-2.6.tar.gz
-cd vnstat-2.6
-./configure --prefix=/usr --sysconfdir=/etc && make && make install
-cd
-vnstat -u -i eth0
-chown vnstat:vnstat /var/lib/vnstat -R
-systemctl enable vnstat
-systemctl restart vnstat
+setup_menu() {
+    wget -q https://raw.githubusercontent.com/welwel11/project2/main/menu/menu.zip -O /tmp/menu.zip
+    unzip -o /tmp/menu.zip -d /usr/local/sbin
+    chmod +x /usr/local/sbin/*
+    rm -f /tmp/menu.zip
+    print_success "Menu Installed"
+}
 
-#=================================================
-# Backup (rclone) & ePro
-#=================================================
-apt install -y rclone
-mkdir -p /root/.config/rclone
-wget -O /root/.config/rclone/rclone.conf "${REPO}config/rclone.conf"
+enable_services() {
+    systemctl daemon-reload
+    systemctl enable --now rc-local nginx xray dropbear cron haproxy netfilter-persistent ws fail2ban
+    print_success "All Services Enabled"
+}
 
-wget -O /usr/bin/ws "${REPO}files/ws"
-wget -O /etc/systemd/system/ws.service "${REPO}files/ws.service"
-chmod +x /usr/bin/ws
-systemctl enable ws
-systemctl start ws
+setup_auto_reboot() {
+    echo "0 3 * * * root /sbin/reboot" > /etc/cron.d/auto-reboot
+    print_success "Auto Reboot scheduled at 3 AM"
+}
 
-#=================================================
-# Fail2ban
-#=================================================
-apt install -y fail2ban
-wget -O /etc/kyt.txt "${REPO}files/issue.net"
-echo "Banner /etc/kyt.txt" >> /etc/ssh/sshd_config
-systemctl enable fail2ban
-systemctl restart fail2ban
+# =============================
+# Installation Sequence
+# =============================
+clear
+print_install "Starting full installation..."
+first_setup
+install_nginx
+install_base_packages
+setup_anti_ddos
+make_folders
+setup_domain
+install_ssl
+install_xray
+install_dropbear
+install_sshd
+install_vnstat
+install_udp_mini
+install_slowdns
+install_backup
+install_swap
+install_fail2ban
+install_epro
+install_openvpn
+setup_menu
+enable_services
+setup_auto_reboot
 
-#=================================================
-# rc.local
-#=================================================
-cat > /etc/rc.local <<EOF
-#!/bin/sh -e
-iptables -I INPUT -p udp --dport 5300 -j ACCEPT
-iptables -t nat -I PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 5300
-systemctl restart netfilter-persistent
-exit 0
-EOF
-chmod +x /etc/rc.local
-systemctl enable rc-local
-systemctl start rc-local
-
-#=================================================
-# Final enable services
-#=================================================
-systemctl daemon-reload
-systemctl enable nginx haproxy xray dropbear sshws cron ws netfilter-persistent
-systemctl restart nginx haproxy xray dropbear sshws cron ws netfilter-persistent
-
-#=================================================
-# Done
-#=================================================
-history -c
-echo -e "${Green}All services installed successfully!${NC}"
-echo "Rebooting VPS..."
-reboot
+echo -e "${Green}Installation Completed Successfully!${NC}"
+read -p "Press Enter to reboot..." && reboot
