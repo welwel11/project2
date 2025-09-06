@@ -1,223 +1,227 @@
 #!/bin/bash
+#=================================================
+# Quick VPN/Xray Server Installer Ubuntu 24
+# Support: SSHWS, HAProxy, Vmess, Vless, Trojan, UDP Mini, SlowDNS, Dropbear, vnStat, Backup, Fail2ban, ePro
+# Author:  / Github https://github.com/welwel11/project2
+#=================================================
 
-# ==========================
-# Auto Installer VPN Ubuntu 24
-# SSHWS + Xray + HAProxy + Trojan + UDP + Vmess + Vless
-# ==========================
+Green="\e[92;1m"
+RED="\033[31m"
+YELLOW="\033[33m"
+BLUE="\033[36m"
+FONT="\033[0m"
+OK="${Green}  »${FONT}"
+ERROR="${RED}[ERROR]${FONT}"
+NC='\e[0m'
 
-# Color
-GREEN="\e[32;1m"
-YELLOW="\e[33m"
-RED="\e[31m"
-BLUE="\e[36m"
-NC="\e[0m"
+# Clear screen
+clear
 
-OK="${GREEN}»${NC}"
-ERROR="${RED}[ERROR]${NC}"
+# Get IP
+export IP=$(curl -sS icanhazip.com || curl -s ipinfo.io/ip)
+echo -e "${OK} VPS Public IP: ${Green}$IP${NC}"
 
 # Check root
-if [ "$EUID" -ne 0 ]; then
-    echo -e "${ERROR} Please run as root"
+if [[ $EUID -ne 0 ]]; then
+    echo -e "${ERROR} Script must be run as root!"
     exit 1
 fi
 
-# Detect OS
-if ! grep -qi "ubuntu" /etc/os-release; then
-    echo -e "${ERROR} Only support Ubuntu"
+# Check Ubuntu
+OS_ID=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
+OS_VER=$(grep -w VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+if [[ "$OS_ID" != "ubuntu" ]]; then
+    echo -e "${ERROR} Only Ubuntu is supported"
     exit 1
 fi
+echo -e "${OK} OS: Ubuntu $OS_VER"
 
-# Variables
-REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
-IP=$(curl -sS ipv4.icanhazip.com)
-DOMAIN=""
-DATE=$(date +"%Y-%m-%d")
-NET=$(ip route | grep default | awk '{print $5}')
+# Update & install dependencies
+echo -e "${OK} Installing dependencies..."
+apt update -y
+apt upgrade -y
+apt install -y software-properties-common curl wget unzip zip sudo git lsof \
+bash-completion figlet pwgen netcat socat chrony ntpdate iptables iptables-persistent \
+netfilter-persistent ufw nano python3 python3-pip ruby gem build-essential dnsutils \
+openssl cron htop tar p7zip-full ruby zip unzip ca-certificates gnupg \
+debconf-utils jq bc
 
-clear
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "  » Quick Setup VPN Server Ubuntu 24"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e " Server IP: ${GREEN}$IP${NC}"
-sleep 2
+# Install lolcat for banner
+gem install lolcat
 
-# -------------------------
-# Update & install base packages
-# -------------------------
-function base_package(){
-    apt update -y
-    apt upgrade -y
-    apt install -y curl wget sudo zip unzip tar jq pwgen netcat socat cron bash-completion \
-        gnupg lsb-release software-properties-common iptables iptables-persistent \
-        dnsutils chrony vnstat fail2ban nginx haproxy dropbear openssl
+# Set timezone
+timedatectl set-timezone Asia/Jakarta
 
-    # Enable chrony
-    systemctl enable chrony
-    systemctl restart chrony
-}
+#=================================================
+# Directories & Permissions
+#=================================================
+mkdir -p /etc/xray /etc/vmess /etc/vless /etc/trojan /etc/shadowsocks /etc/ssh /etc/bot \
+/var/log/xray /usr/local/bin /var/lib/kyt /etc/kyt/limit/vmess/ip /etc/kyt/limit/vless/ip \
+/etc/kyt/limit/trojan/ip /etc/kyt/limit/ssh/ip /var/www/html
 
-# -------------------------
-# Create necessary folders
-# -------------------------
-function make_folder(){
-    mkdir -p /etc/xray /var/log/xray /etc/vmess /etc/vless /etc/trojan /etc/shadowsocks /etc/ssh
-    mkdir -p /etc/bot /etc/user-create /var/www/html
-    touch /etc/xray/domain /var/log/xray/access.log /var/log/xray/error.log
-}
+chmod +x /var/log/xray
+touch /var/log/xray/access.log
+touch /var/log/xray/error.log
+touch /etc/xray/domain
 
-# -------------------------
-# Domain setup
-# -------------------------
-function setup_domain(){
-    clear
-    echo -e "${YELLOW}» SETUP DOMAIN${NC}"
-    echo "1) Domain Pribadi"
-    echo "2) Domain Bawaan"
-    read -rp "Pilih [1-2]: " choice
-    if [[ "$choice" == "1" ]]; then
-        read -rp "Masukkan domain/subdomain: " DOMAIN
-    else
-        # Install cf script
-        wget -q ${REPO}files/cf.sh -O /root/cf.sh
-        chmod +x /root/cf.sh
-        /root/cf.sh
-        DOMAIN=$(cat /root/domain)
-        rm -f /root/cf.sh
-    fi
-    echo "$DOMAIN" > /etc/xray/domain
-}
+#=================================================
+# HAProxy
+#=================================================
+echo -e "${OK} Installing HAProxy..."
+apt install -y haproxy
+systemctl enable haproxy
+systemctl start haproxy
 
-# -------------------------
-# Install SSL using acme.sh
-# -------------------------
-function install_ssl(){
-    clear
-    echo -e "${OK} Installing SSL for $DOMAIN"
-    systemctl stop nginx
-    curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
-    chmod +x /root/.acme.sh/acme.sh
-    /root/.acme.sh/acme.sh --upgrade --auto-upgrade
-    /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-    /root/.acme.sh/acme.sh --issue -d $DOMAIN --standalone -k ec-256
-    ~/.acme.sh/acme.sh --installcert -d $DOMAIN \
-        --fullchainpath /etc/xray/xray.crt \
-        --keypath /etc/xray/xray.key --ecc
-    chmod 644 /etc/xray/xray.key /etc/xray/xray.crt
-    print_ok "SSL Installed"
-}
+#=================================================
+# Nginx
+#=================================================
+echo -e "${OK} Installing Nginx..."
+apt install -y nginx
+systemctl enable nginx
+systemctl start nginx
 
-# -------------------------
+#=================================================
 # Install Xray Core
-# -------------------------
-function install_xray(){
-    clear
-    echo -e "${OK} Installing Xray Core"
-    latest_version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | jq -r '.[0].tag_name')
-    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version $latest_version
-    # Download default config
-    wget -O /etc/xray/config.json "${REPO}config/config.json"
-}
+#=================================================
+echo -e "${OK} Installing Xray Core..."
+latest_version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n1)
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version "$latest_version"
 
-# -------------------------
-# SSH WebSocket
-# -------------------------
-function install_sshws(){
-    clear
-    echo -e "${OK} Installing SSH WebSocket (SSHWS)"
-    wget -q -O /usr/local/bin/sshws "${REPO}files/sshws"
-    chmod +x /usr/local/bin/sshws
+# Download default configs
+REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
+wget -O /etc/xray/config.json "${REPO}config/config.json"
+wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service"
+chmod +x /etc/systemd/system/runn.service
 
-    cat >/etc/systemd/system/sshws.service <<EOF
+#=================================================
+# Domain & SSL
+#=================================================
+read -p "Enter your domain/subdomain: " DOMAIN
+echo $DOMAIN > /etc/xray/domain
+echo $DOMAIN > /root/domain
+
+# Install acme.sh & issue certificate
+mkdir -p /root/.acme.sh
+curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
+chmod +x /root/.acme.sh/acme.sh
+/root/.acme.sh/acme.sh --upgrade --auto-upgrade
+/root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+/root/.acme.sh/acme.sh --issue -d $DOMAIN --standalone -k ec-256
+~/.acme.sh/acme.sh --installcert -d $DOMAIN --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+
+cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
+
+#=================================================
+# SSH & Dropbear
+#=================================================
+echo -e "${OK} Installing Dropbear..."
+apt install -y dropbear
+wget -q -O /etc/default/dropbear "${REPO}config/dropbear.conf"
+systemctl enable dropbear
+systemctl restart dropbear
+
+#=================================================
+# SSHWS (SSH over WebSocket)
+#=================================================
+echo -e "${OK} Installing SSHWS (SSH over WebSocket)..."
+wget -q -O /usr/local/bin/sshws "${REPO}files/sshws"
+chmod +x /usr/local/bin/sshws
+
+cat > /etc/systemd/system/sshws.service <<EOF
 [Unit]
-Description=SSH WebSocket Service
+Description=SSH over WebSocket
 After=network.target
 
 [Service]
 ExecStart=/usr/local/bin/sshws
 Restart=on-failure
 User=root
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
-NoNewPrivileges=true
+LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-    systemctl daemon-reload
-    systemctl enable sshws
-    systemctl start sshws
-}
+systemctl daemon-reload
+systemctl enable sshws
+systemctl start sshws
 
-# -------------------------
-# HAProxy & Nginx config
-# -------------------------
-function setup_haproxy_nginx(){
-    clear
-    echo -e "${OK} Setting HAProxy & Nginx"
-    wget -O /etc/haproxy/haproxy.cfg "${REPO}config/haproxy.cfg"
-    wget -O /etc/nginx/conf.d/xray.conf "${REPO}config/xray.conf"
-    sed -i "s/xxx/$DOMAIN/g" /etc/haproxy/haproxy.cfg
-    sed -i "s/xxx/$DOMAIN/g" /etc/nginx/conf.d/xray.conf
-    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
-    systemctl enable haproxy nginx
-    systemctl restart haproxy nginx
-}
+#=================================================
+# UDP Mini & SlowDNS
+#=================================================
+wget -q -O /usr/local/kyt/udp-mini "${REPO}files/udp-mini"
+chmod +x /usr/local/kyt/udp-mini
+for i in 1 2 3; do
+    wget -q -O /etc/systemd/system/udp-mini-$i.service "${REPO}files/udp-mini-$i.service"
+    systemctl enable udp-mini-$i
+    systemctl start udp-mini-$i
+done
 
-# -------------------------
-# Trojan, Vmess, Vless, Shadowsocks setup
-# -------------------------
-function setup_protocols(){
-    mkdir -p /etc/vmess /etc/vless /etc/trojan /etc/shadowsocks
-    touch /etc/vmess/.vmess.db /etc/vless/.vless.db /etc/trojan/.trojan.db /etc/shadowsocks/.shadowsocks.db
-}
+wget -q -O /tmp/nameserver "${REPO}files/nameserver"
+chmod +x /tmp/nameserver
+bash /tmp/nameserver | tee /root/install.log
 
-# -------------------------
-# Swap & BBR
-# -------------------------
-function setup_swap_bbr(){
-    fallocate -l 1G /swapfile
-    chmod 600 /swapfile
-    mkswap /swapfile
-    swapon /swapfile
-    echo "/swapfile swap swap defaults 0 0" >> /etc/fstab
+#=================================================
+# vnStat
+#=================================================
+apt install -y vnstat libsqlite3-dev
+wget https://humdi.net/vnstat/vnstat-2.6.tar.gz
+tar zxvf vnstat-2.6.tar.gz
+cd vnstat-2.6
+./configure --prefix=/usr --sysconfdir=/etc && make && make install
+cd
+vnstat -u -i eth0
+chown vnstat:vnstat /var/lib/vnstat -R
+systemctl enable vnstat
+systemctl restart vnstat
 
-    # Enable BBR
-    echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-    echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
-    sysctl -p
-}
+#=================================================
+# Backup (rclone) & ePro
+#=================================================
+apt install -y rclone
+mkdir -p /root/.config/rclone
+wget -O /root/.config/rclone/rclone.conf "${REPO}config/rclone.conf"
 
-# -------------------------
-# Enable & restart services
-# -------------------------
-function enable_services(){
-    systemctl daemon-reload
-    systemctl enable --now xray sshws haproxy nginx dropbear cron netfilter-persistent
-    systemctl restart xray sshws haproxy nginx dropbear cron
-}
+wget -O /usr/bin/ws "${REPO}files/ws"
+wget -O /etc/systemd/system/ws.service "${REPO}files/ws.service"
+chmod +x /usr/bin/ws
+systemctl enable ws
+systemctl start ws
 
-# -------------------------
-# Run all installation steps
-# -------------------------
-function main(){
-    base_package
-    make_folder
-    setup_domain
-    install_ssl
-    install_xray
-    install_sshws
-    setup_haproxy_nginx
-    setup_protocols
-    setup_swap_bbr
-    enable_services
-    clear
-    echo -e "${GREEN}✅ Installation Completed!${NC}"
-    echo "Domain: $DOMAIN"
-    echo "IP: $IP"
-    echo "Xray, SSHWS, HAProxy, Trojan, Vmess, Vless installed."
-    echo "Rebooting in 5 seconds..."
-    sleep 5
-    reboot
-}
+#=================================================
+# Fail2ban
+#=================================================
+apt install -y fail2ban
+wget -O /etc/kyt.txt "${REPO}files/issue.net"
+echo "Banner /etc/kyt.txt" >> /etc/ssh/sshd_config
+systemctl enable fail2ban
+systemctl restart fail2ban
 
-main
+#=================================================
+# rc.local
+#=================================================
+cat > /etc/rc.local <<EOF
+#!/bin/sh -e
+iptables -I INPUT -p udp --dport 5300 -j ACCEPT
+iptables -t nat -I PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 5300
+systemctl restart netfilter-persistent
+exit 0
+EOF
+chmod +x /etc/rc.local
+systemctl enable rc-local
+systemctl start rc-local
+
+#=================================================
+# Final enable services
+#=================================================
+systemctl daemon-reload
+systemctl enable nginx haproxy xray dropbear sshws cron ws netfilter-persistent
+systemctl restart nginx haproxy xray dropbear sshws cron ws netfilter-persistent
+
+#=================================================
+# Done
+#=================================================
+history -c
+echo -e "${Green}All services installed successfully!${NC}"
+echo "Rebooting VPS..."
+reboot
