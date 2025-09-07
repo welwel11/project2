@@ -1,0 +1,44 @@
+# OpenSSH server system-wide configuration for Ubuntu 24
+# Compatible with SSHWS / VPN script
+
+# Ports
+Port 22
+Port 2222
+Port 2223
+Port 443
+
+# Authentication
+PermitRootLogin yes
+PasswordAuthentication yes
+ChallengeResponseAuthentication no
+UsePAM yes
+
+# Allow forwarding
+AllowTcpForwarding yes
+X11Forwarding yes
+
+# Banner
+Banner /etc/kyt.txt
+PrintMotd no
+
+# Subsystems
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Default comments left for reference
+#AddressFamily any
+#ListenAddress 0.0.0.0
+#ListenAddress ::
+#HostKey /etc/ssh/ssh_host_rsa_key
+#HostKey /etc/ssh/ssh_host_ecdsa_key
+#HostKey /etc/ssh/ssh_host_ed25519_key
+#SyslogFacility AUTH
+#LogLevel INFO
+#StrictModes yes
+#MaxAuthTries 6
+#MaxSessions 10
+#PubkeyAuthentication yes
+#AuthorizedKeysFile .ssh/authorized_keys .ssh/authorized_keys2
+#IgnoreRhosts yes
+#PermitEmptyPasswords no
+#GSSAPIAuthentication no
+#AcceptEnv LANG LC_*
