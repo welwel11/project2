@@ -80,6 +80,14 @@ apt install ruby -y
 gem install lolcat
 apt install wondershaper -y
 clear
+function install_dependencies() {
+    print_install "Installing Dependencies..."
+    apt install -y zip pwgen openssl netcat socat cron bash-completion \
+        figlet ruby lolcat wondershaper iptables-persistent vnstat \
+        rclone msmtp-mta ca-certificates bsd-mailx openvpn easy-rsa \
+        fail2ban nginx dropbear ufw
+    gem install lolcat
+}
 # REPO    
     REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
 
