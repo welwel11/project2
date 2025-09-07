@@ -1,5 +1,4 @@
 #!/bin/bash
-#!/bin/bash
 
 REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
 wget -q -O /etc/systemd/system/limitvmess.service "${REPO}files/limitvmess.service" && chmod +x limitvmess.service >/dev/null 2>&1
