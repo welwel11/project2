@@ -613,6 +613,14 @@ rm -rf /root/vnstat-2.6
 print_success "Vnstat"
 }
 
+function ins_openvpn(){
+clear
+print_install "Menginstall OpenVPN"
+wget ${REPO}files/openvpn &&  chmod +x openvpn && ./openvpn
+/etc/init.d/openvpn restart
+print_success "OpenVPN"
+}
+
 function ins_backup(){
 clear
 print_install "Memasang Backup Server"
