@@ -76,9 +76,11 @@ NC='\e[0m'
 MYIP=$(curl -sS ipv4.icanhazip.com)
 echo -e "\e[32mloading...\e[0m"
 clear
-apt install ruby -y
-gem install lolcat
-apt install wondershaper -y
+apt update -y
+apt upgrade -y
+apt install -y software-properties-common curl wget unzip sudo net-tools iptables iptables-persistent \
+chrony ntpdate ruby-full python3 python3-pip vim lsof tar wget curl zip unzip p7zip-full \
+bash-completion gnupg2 ca-certificates build-essential make cmake git screen socat dnsutils
 clear
 # REPO    
     REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
@@ -97,20 +99,6 @@ function print_install() {
     echo -e "${YELLOW} » $1 ${FONT}"
 	echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
     sleep 1
-}
-function update_system() {
-    print_install "Updating System..."
-    apt update -y && apt upgrade -y && apt dist-upgrade -y
-    apt install -y software-properties-common curl wget unzip git net-tools sudo
-}
-
-function install_dependencies() {
-    print_install "Installing Dependencies..."
-    apt install -y zip pwgen openssl netcat socat cron bash-completion \
-        figlet ruby lolcat wondershaper iptables-persistent vnstat \
-        rclone msmtp-mta ca-certificates bsd-mailx openvpn easy-rsa \
-        fail2ban nginx dropbear ufw
-    gem install lolcat
 }
 
 function print_error() {
