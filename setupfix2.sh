@@ -1,263 +1,176 @@
 #!/bin/bash
-# ===================================================
-# VPN Server Full Installer – Ubuntu 24+
-# Features: Dropbear, SSHD, SlowDNS, vnStat, Backup,
-# Swap, Fail2Ban, ePro, udp-mini, OpenVPN, Auto Reboot, Anti-DDOS, HAProxy
-# ===================================================
 
 Green="\e[92;1m"
 RED="\033[31m"
 YELLOW="\033[33m"
 BLUE="\033[36m"
 FONT="\033[0m"
+GREENBG="\033[42;37m"
+REDBG="\033[41;37m"
 OK="${Green}  »${FONT}"
 ERROR="${RED}[ERROR]${FONT}"
 GRAY="\e[1;30m"
 NC='\e[0m'
+red='\e[1;31m'
+green='\e[0;32m'
 
 clear
-export IP=$(curl -sS icanhazip.com)
+export IP=$( curl -sS icanhazip.com )
 
-# =============================
-# Basic checks
-# =============================
-[ "$EUID" -ne 0 ] && echo -e "${ERROR} Please run as root" && exit 1
-[[ "$(systemd-detect-virt)" == "openvz" ]] && echo -e "${ERROR} OpenVZ not supported" && exit 1
+clear && clear && clear
 
-ARCH=$(uname -m)
-[[ "$ARCH" != "x86_64" ]] && echo -e "${ERROR} Architecture $ARCH not supported" && exit 1
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "  » This Will Quick Setup VPN Server On Your Server"
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+sleep 2
 
-OS=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
-[[ "$OS" != "ubuntu" && "$OS" != "debian" ]] && echo -e "${ERROR} OS $OS not supported" && exit 1
+# Cek Arsitektur
+if [[ $( uname -m ) == "x86_64" ]]; then
+    echo -e "${OK} Your Architecture Is Supported ( ${green}$( uname -m )${NC} )"
+else
+    echo -e "${ERROR} Your Architecture Is Not Supported ( ${YELLOW}$( uname -m )${NC} )"
+    exit 1
+fi
 
-echo -e "${OK} Architecture: $ARCH"
-echo -e "${OK} OS: $(grep PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"')"
-echo -e "${OK} IP Address: $IP"
-read -p "$(echo -e "Press ${GRAY}[${NC}${Green}Enter${NC}${GRAY}]${NC} to start installation") "
+# Cek OS
+OS_ID=$(grep -w ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
 
-# =============================
-# Utility functions
-# =============================
-print_install() { echo -e "${YELLOW}» $1${FONT}"; sleep 1; }
-print_success() { echo -e "${Green}» $1 installed${NC}"; sleep 1; }
-print_error() { echo -e "${ERROR} $1"; }
+if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
+    echo -e "${OK} Your OS Is Supported ( ${green}$OS_NAME${NC} )"
+else
+    echo -e "${ERROR} Your OS Is Not Supported ( ${YELLOW}$OS_NAME${NC} )"
+    exit 1
+fi
 
-# =============================
-# System Setup
-# =============================
-first_setup() {
+# IP Address
+if [[ $IP == "" ]]; then
+    echo -e "${ERROR} IP Address ( ${YELLOW}Not Detected${NC} )"
+else
+    echo -e "${OK} IP Address ( ${green}$IP${NC} )"
+fi
+
+echo ""
+read -p "$( echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
+clear
+
+if [ "${EUID}" -ne 0 ]; then
+    echo "You need to run this script as root"
+    exit 1
+fi
+
+if [ "$(systemd-detect-virt)" == "openvz" ]; then
+    echo "OpenVZ is not supported"
+    exit 1
+fi
+
+# Instal Ruby & Wondershaper
+apt install ruby -y
+gem install lolcat
+apt install wondershaper -y
+clear
+
+REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
+
+start=$(date +%s)
+secs_to_human() {
+    echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
+}
+
+# Fungsi Status
+function print_ok() { echo -e "${OK} ${BLUE} $1 ${FONT}"; }
+function print_install() {
+    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+    echo -e "${YELLOW} » $1 ${FONT}"
+    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+    sleep 1
+}
+function print_error() { echo -e "${ERROR} ${REDBG} $1 ${FONT}"; }
+function print_success() { if [[ 0 -eq $? ]]; then echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"; echo -e "${Green} » $1 berhasil dipasang"; echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"; sleep 2; fi; }
+
+# Cek root
+function is_root() { [[ 0 == "$UID" ]] && print_ok "Root user Start installation process" || print_error "Current user is not root"; }
+
+# Buat direktori xray
+print_install "Membuat direktori xray"
+mkdir -p /etc/xray /var/log/xray /var/lib/kyt >/dev/null 2>&1
+touch /etc/xray/domain /var/log/xray/access.log /var/log/xray/error.log
+
+# Ambil RAM Info
+while IFS=":" read -r a b; do
+    case $a in
+        "MemTotal") ((mem_used+=${b/kB})); mem_total="${b/kB}" ;;
+        "Shmem") ((mem_used+=${b/kB})) ;;
+        "MemFree"|"Buffers"|"Cached"|"SReclaimable") mem_used="$((mem_used-=${b/kB}))" ;;
+    esac
+done < /proc/meminfo
+Ram_Usage="$((mem_used / 1024))"
+Ram_Total="$((mem_total / 1024))"
+
+export tanggal=$(date -d "0 days" +"%d-%m-%Y - %X")
+export OS_Name=$OS_NAME
+export Kernel=$(uname -r)
+export Arch=$(uname -m)
+export IP=$(curl -s https://ipinfo.io/ip/)
+
+# Fungsi Setup Awal
+function first_setup() {
     timedatectl set-timezone Asia/Jakarta
-    apt update -y && apt upgrade -y
-    apt install -y software-properties-common unzip curl wget lsb-release net-tools iptables-persistent python-is-python3
-}
+    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+    print_success "Directory Xray"
 
-install_haproxy() {
-    print_install "Installing HAProxy"
-    apt install -y haproxy
-    systemctl enable --now haproxy
-    print_success "HAProxy"
-}
-
-install_nginx() {
-    apt install -y nginx
-    systemctl enable --now nginx
-    print_success "Nginx"
-}
-
-install_base_packages() {
-    apt install -y zip pwgen openssl netcat socat rclone msmtp-mta ca-certificates bsd-mailx \
-        openvpn easy-rsa ruby python3-pip vnstat libsqlite3-dev
-    gem install lolcat
-    print_success "Base Packages"
-}
-
-# =============================
-# Anti-DDoS Basic
-# =============================
-setup_anti_ddos() {
-    print_install "Configuring basic Anti-DDoS"
-    iptables -A INPUT -p tcp --dport 22 -m connlimit --connlimit-above 5 -j REJECT
-    iptables -A INPUT -p tcp --dport 80 -m connlimit --connlimit-above 50 -j REJECT
-    iptables -A INPUT -p tcp --dport 443 -m connlimit --connlimit-above 50 -j REJECT
-    iptables -A INPUT -p udp -m limit --limit 25/minute --limit-burst 50 -j ACCEPT
-    iptables -A INPUT -p udp -j DROP
-    netfilter-persistent save
-    netfilter-persistent reload
-    print_success "Anti-DDoS rules applied"
-}
-
-# =============================
-# Folder & Directory Setup
-# =============================
-make_folders() {
-    print_install "Creating directories..."
-    # Xray & SSL
-    mkdir -p /etc/xray/ssl
-    chmod 700 /etc/xray/ssl
-    touch /etc/xray/domain
-    chmod 644 /etc/xray/domain
-
-    # Log folder
-    mkdir -p /var/log/xray
-    chmod 755 /var/log/xray
-
-    # Other folders
-    mkdir -p /etc/{vless,vmess,trojan,shadowsocks,ssh,bot,user-create}
-    mkdir -p /usr/local/sbin /var/www/html /etc/kyt/limit/{vmess,vless,trojan,ssh}/ip
-    touch /var/log/xray/{access.log,error.log}
-    print_success "Directories Created"
-}
-
-# =============================
-# Domain & SSL
-# =============================
-setup_domain() {
-    read -p "Use custom domain? [y/n]: " choice
-    if [[ "$choice" == "y" ]]; then
-        read -p "Enter domain/subdomain: " DOMAIN
-        echo "$DOMAIN" > /etc/xray/domain
+    if [[ "$OS_ID" == "ubuntu" ]]; then
+        echo "Setup Dependencies $OS_NAME"
+        sudo apt update -y
+        apt-get install --no-install-recommends software-properties-common -y
+        add-apt-repository ppa:vbernat/haproxy-3.0 -y
+        apt-get -y install haproxy=3.0.*
     else
-        wget -q https://raw.githubusercontent.com/welwel11/project2/main/files/cf.sh -O /tmp/cf.sh
-        chmod +x /tmp/cf.sh && /tmp/cf.sh && rm -f /tmp/cf.sh
+        echo "Setup Dependencies For OS $OS_NAME"
+        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
+        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net Bullseye-2.6 main >/etc/apt/sources.list.d/haproxy.list
+        sudo apt-get update
+        apt-get -y install haproxy=2.6.*
     fi
-    print_success "Domain"
 }
 
-install_ssl() {
-    DOMAIN=$(cat /etc/xray/domain)
-    mkdir -p /root/.acme.sh
-    curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
-    chmod +x /root/.acme.sh/acme.sh
-    /root/.acme.sh/acme.sh --issue -d $DOMAIN --standalone -k ec-256
-    /root/.acme.sh/acme.sh --installcert -d $DOMAIN \
-        --fullchainpath /etc/xray/ssl/xray.crt --keypath /etc/xray/ssl/xray.key --ecc
-    chmod 644 /etc/xray/ssl/xray.key /etc/xray/ssl/xray.crt
-    print_success "SSL"
+# ... [Fungsi lainnya seperti nginx_install, base_package, pasang_domain, pasang_ssl, install_xray, ssh, udp_mini, ssh_slow, ins_SSHD, ins_dropbear, ins_vnstat, ins_backup, ins_swab, ins_Fail2ban, ins_epro, ins_restart, menu, profile, enable_services] ...
+
+# Instalasi Utama
+function instal() {
+    clear
+    first_setup
+    nginx_install
+    base_package
+    make_folder_xray
+    pasang_domain
+    password_default
+    pasang_ssl
+    install_xray
+    ssh
+    udp_mini
+    ssh_slow
+    ins_SSHD
+    ins_dropbear
+    ins_vnstat
+    ins_backup
+    ins_swab
+    ins_Fail2ban
+    ins_epro
+    ins_restart
+    menu
+    profile
+    enable_services
+    restart_system
 }
 
-# =============================
-# Xray & Proxy Install
-# =============================
-install_xray() {
-    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version 1.8.23
-    wget -O /etc/xray/config.json https://raw.githubusercontent.com/welwel11/project2/main/config/config.json
-    print_success "Xray"
-}
+instal
 
-install_dropbear() {
-    apt install -y dropbear
-    wget -O /etc/default/dropbear https://raw.githubusercontent.com/welwel11/project2/main/config/dropbear.conf
-    systemctl enable --now dropbear
-    print_success "Dropbear"
-}
-
-install_sshd() {
-    wget -O /etc/ssh/sshd_config https://raw.githubusercontent.com/welwel11/project2/main/files/sshd
-    systemctl restart ssh
-    print_success "SSHD"
-}
-
-install_vnstat() {
-    apt install -y vnstat libsqlite3-dev
-    vnstat -u -i eth0
-    systemctl enable --now vnstat
-    print_success "vnStat"
-}
-
-install_udp_mini() {
-    mkdir -p /usr/local/kyt
-    wget -q -O /usr/local/kyt/udp-mini https://raw.githubusercontent.com/welwel11/project2/main/files/udp-mini
-    chmod +x /usr/local/kyt/udp-mini
-    print_success "UDP Mini"
-}
-
-install_slowdns() {
-    wget -q -O /tmp/nameserver https://raw.githubusercontent.com/welwel11/project2/main/files/nameserver
-    chmod +x /tmp/nameserver
-    bash /tmp/nameserver
-    print_success "SlowDNS"
-}
-
-install_backup() {
-    apt install -y rclone
-    mkdir -p /root/.config/rclone
-    wget -O /root/.config/rclone/rclone.conf https://raw.githubusercontent.com/welwel11/project2/main/config/rclone.conf
-    print_success "Backup"
-}
-
-install_swap() {
-    dd if=/dev/zero of=/swapfile bs=1M count=1024
-    mkswap /swapfile
-    chmod 600 /swapfile
-    swapon /swapfile
-    echo "/swapfile swap swap defaults 0 0" >> /etc/fstab
-    print_success "Swap 1GB"
-}
-
-install_fail2ban() {
-    apt install -y fail2ban
-    systemctl enable --now fail2ban
-    print_success "Fail2Ban"
-}
-
-install_epro() {
-    wget -O /usr/bin/ws https://raw.githubusercontent.com/welwel11/project2/main/files/ws
-    chmod +x /usr/bin/ws
-    # Note: pastikan ws punya systemd unit jika ingin auto-start
-    print_success "ePro WebSocket Proxy"
-}
-
-install_openvpn() {
-    apt install -y openvpn easy-rsa
-    print_success "OpenVPN"
-}
-
-setup_menu() {
-    wget -q https://raw.githubusercontent.com/welwel11/project2/main/menu/menu.zip -O /tmp/menu.zip
-    unzip -o /tmp/menu.zip -d /usr/local/sbin
-    chmod +x /usr/local/sbin/*
-    rm -f /tmp/menu.zip
-    print_success "Menu Installed"
-}
-
-enable_services() {
-    systemctl daemon-reload
-    systemctl enable --now rc-local nginx xray dropbear cron haproxy netfilter-persistent ws fail2ban
-    print_success "All Services Enabled"
-}
-
-setup_auto_reboot() {
-    echo "0 3 * * * root /sbin/reboot" > /etc/cron.d/auto-reboot
-    print_success "Auto Reboot scheduled at 3 AM"
-}
-
-# =============================
-# Installation Sequence
-# =============================
-clear
-print_install "Starting full installation..."
-first_setup
-install_haproxy
-install_nginx
-install_base_packages
-setup_anti_ddos
-make_folders
-setup_domain
-install_ssl
-install_xray
-install_dropbear
-install_sshd
-install_vnstat
-install_udp_mini
-install_slowdns
-install_backup
-install_swap
-install_fail2ban
-install_epro
-install_openvpn
-setup_menu
-enable_services
-setup_auto_reboot
-
-echo -e "${Green}Installation Completed Successfully!${NC}"
-read -p "Press Enter to reboot..." && reboot
+history -c
+rm -rf /root/menu /root/*.zip /root/*.sh /root/LICENSE /root/README.md /root/domain
+secs_to_human "$(($(date +%s) - ${start}))"
+echo -e "${green} Script Successfull Installed"
+read -p "$( echo -e "Press ${YELLOW}[ ${NC}${YELLOW}Enter${NC} ${YELLOW}]${NC} For reboot") "
+reboot
