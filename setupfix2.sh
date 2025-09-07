@@ -76,11 +76,12 @@ NC='\e[0m'
 MYIP=$(curl -sS ipv4.icanhazip.com)
 echo -e "\e[32mloading...\e[0m"
 clear
-apt update -y
-apt upgrade -y
+# // UPDATE & DEPENDENCIES
+apt update -y && apt upgrade -y
 apt install -y software-properties-common curl wget unzip sudo net-tools iptables iptables-persistent \
-chrony ntpdate ruby-full python3 python3-pip vim lsof tar wget curl zip unzip p7zip-full \
-bash-completion gnupg2 ca-certificates build-essential make cmake git screen socat dnsutils
+chrony ntpdate ruby-full python3 python3-pip vim lsof tar zip p7zip-full \
+bash-completion gnupg2 ca-certificates build-essential make cmake git screen socat dnsutils \
+vnstat rclone msmtp-mta bsd-mailx iptables-persistent netfilter-persistent openvpn easy-rsa
 clear
 # REPO    
     REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
