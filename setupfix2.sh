@@ -80,14 +80,6 @@ apt install ruby -y
 gem install lolcat
 apt install wondershaper -y
 clear
-function install_dependencies() {
-    print_install "Installing Dependencies..."
-    apt install -y zip pwgen openssl netcat socat cron bash-completion \
-        figlet ruby lolcat wondershaper iptables-persistent vnstat \
-        rclone msmtp-mta ca-certificates bsd-mailx openvpn easy-rsa \
-        fail2ban nginx dropbear ufw
-    gem install lolcat
-}
 # REPO    
     REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
 
@@ -106,6 +98,20 @@ function print_install() {
 	echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
     sleep 1
 }
+function update_system() {
+    print_install "Updating System..."
+    apt update -y && apt upgrade -y && apt dist-upgrade -y
+    apt install -y software-properties-common curl wget unzip git net-tools sudo
+}
+
+function install_dependencies() {
+    print_install "Installing Dependencies..."
+    apt install -y zip pwgen openssl netcat socat cron bash-completion \
+        figlet ruby lolcat wondershaper iptables-persistent vnstat \
+        rclone msmtp-mta ca-certificates bsd-mailx openvpn easy-rsa \
+        fail2ban nginx dropbear ufw
+    gem install lolcat
+}
 
 function print_error() {
     echo -e "${ERROR} ${REDBG} $1 ${FONT}"
@@ -119,6 +125,7 @@ function print_success() {
         sleep 2
     fi
 }
+
 
 ### Cek root
 function is_root() {
