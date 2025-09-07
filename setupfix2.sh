@@ -77,6 +77,7 @@ MYIP=$(curl -sS ipv4.icanhazip.com)
 echo -e "\e[32mloading...\e[0m"
 clear
 apt install ruby -y
+apt install chrony -y
 gem install lolcat
 apt install wondershaper -y
 apt update -y && apt upgrade -y
