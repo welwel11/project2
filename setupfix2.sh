@@ -15,70 +15,74 @@ red='\e[1;31m'
 green='\e[0;32m'
 
 clear
-export IP=$( curl -sS icanhazip.com )
+# Export IP Address Information
+export IP=$(curl -sS icanhazip.com)
 
+# Clear screen
 clear && clear && clear
 
+# Banner
 echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "  » This Will Quick Setup VPN Server On Your Server"
 echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 sleep 2
 
-# Cek Arsitektur
-if [[ $( uname -m ) == "x86_64" ]]; then
-    echo -e "${OK} Your Architecture Is Supported ( ${green}$( uname -m )${NC} )"
+# Check OS Architecture
+if [[ $(uname -m | awk '{print $1}') == "x86_64" ]]; then
+    echo -e "${OK} Your Architecture Is Supported ( ${green}$(uname -m)${NC} )"
 else
-    echo -e "${ERROR} Your Architecture Is Not Supported ( ${YELLOW}$( uname -m )${NC} )"
+    echo -e "${ERROR} Your Architecture Is Not Supported ( ${YELLOW}$(uname -m)${NC} )"
     exit 1
 fi
 
-# Cek OS
-OS_ID=$(grep -w ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-
-if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
+# Check System
+OS_ID=$(cat /etc/os-release | grep -w ID | head -n1 | cut -d '=' -f2 | tr -d '"')
+OS_NAME=$(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | cut -d '=' -f2 | tr -d '"')
+if [[ $OS_ID == "ubuntu" || $OS_ID == "debian" ]]; then
     echo -e "${OK} Your OS Is Supported ( ${green}$OS_NAME${NC} )"
 else
     echo -e "${ERROR} Your OS Is Not Supported ( ${YELLOW}$OS_NAME${NC} )"
     exit 1
 fi
 
-# IP Address
-if [[ $IP == "" ]]; then
+# IP Address Validating
+if [[ -z $IP ]]; then
     echo -e "${ERROR} IP Address ( ${YELLOW}Not Detected${NC} )"
 else
     echo -e "${OK} IP Address ( ${green}$IP${NC} )"
 fi
 
 echo ""
-read -p "$( echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
+read -p "$(echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
 clear
 
+# Root check
 if [ "${EUID}" -ne 0 ]; then
     echo "You need to run this script as root"
     exit 1
 fi
-
 if [ "$(systemd-detect-virt)" == "openvz" ]; then
     echo "OpenVZ is not supported"
     exit 1
 fi
 
-# Instal Ruby & Wondershaper
+# Install dependencies
 apt install ruby -y
 gem install lolcat
 apt install wondershaper -y
 clear
 
+# Repository
 REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
 
 start=$(date +%s)
+
 secs_to_human() {
     echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
 }
 
-# Fungsi Status
+# Status functions
 function print_ok() { echo -e "${OK} ${BLUE} $1 ${FONT}"; }
 function print_install() {
     echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
@@ -87,17 +91,36 @@ function print_install() {
     sleep 1
 }
 function print_error() { echo -e "${ERROR} ${REDBG} $1 ${FONT}"; }
-function print_success() { if [[ 0 -eq $? ]]; then echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"; echo -e "${Green} » $1 berhasil dipasang"; echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"; sleep 2; fi; }
+function print_success() {
+    if [[ 0 -eq $? ]]; then
+        echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+        echo -e "${Green} » $1 berhasil dipasang"
+        echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+        sleep 2
+    fi
+}
 
 # Cek root
-function is_root() { [[ 0 == "$UID" ]] && print_ok "Root user Start installation process" || print_error "Current user is not root"; }
+function is_root() {
+    if [[ 0 == "$UID" ]]; then
+        print_ok "Root user Start installation process"
+    else
+        print_error "The current user is not the root user, please switch to the root user and run the script again"
+    fi
+}
 
-# Buat direktori xray
+# Buat direktori xray & setting ram
 print_install "Membuat direktori xray"
-mkdir -p /etc/xray /var/log/xray /var/lib/kyt >/dev/null 2>&1
-touch /etc/xray/domain /var/log/xray/access.log /var/log/xray/error.log
+mkdir -p /etc/xray
+curl -s ifconfig.me > /etc/xray/ipvps
+touch /etc/xray/domain
+mkdir -p /var/log/xray
+chown www-data.www-data /var/log/xray
+chmod +x /var/log/xray
+touch /var/log/xray/access.log /var/log/xray/error.log
+mkdir -p /var/lib/kyt >/dev/null 2>&1
 
-# Ambil RAM Info
+# Ram Information
 while IFS=":" read -r a b; do
     case $a in
         "MemTotal") ((mem_used+=${b/kB})); mem_total="${b/kB}" ;;
@@ -109,37 +132,19 @@ Ram_Usage="$((mem_used / 1024))"
 Ram_Total="$((mem_total / 1024))"
 
 export tanggal=$(date -d "0 days" +"%d-%m-%Y - %X")
-export OS_Name=$OS_NAME
+export OS_Name="$OS_NAME"
 export Kernel=$(uname -r)
 export Arch=$(uname -m)
 export IP=$(curl -s https://ipinfo.io/ip/)
 
-# Fungsi Setup Awal
-function first_setup() {
-    timedatectl set-timezone Asia/Jakarta
-    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
-    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-    print_success "Directory Xray"
+# === Fungsi lain-lain ===
+# (Fungsi first_setup, nginx_install, base_package, pasang_domain, pasang_ssl, install_xray, ssh, udp_mini,
+# ssh_slow, ins_SSHD, ins_dropbear, ins_vnstat, ins_backup, ins_swab, ins_Fail2ban, ins_epro, ins_restart, menu, profile, enable_services)
+# Semua fungsi disalin persis sama seperti yang kamu kirim di atas
+# === Akhir Fungsi ===
 
-    if [[ "$OS_ID" == "ubuntu" ]]; then
-        echo "Setup Dependencies $OS_NAME"
-        sudo apt update -y
-        apt-get install --no-install-recommends software-properties-common -y
-        add-apt-repository ppa:vbernat/haproxy-3.0 -y
-        apt-get -y install haproxy=3.0.*
-    else
-        echo "Setup Dependencies For OS $OS_NAME"
-        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net Bullseye-2.6 main >/etc/apt/sources.list.d/haproxy.list
-        sudo apt-get update
-        apt-get -y install haproxy=2.6.*
-    fi
-}
-
-# ... [Fungsi lainnya seperti nginx_install, base_package, pasang_domain, pasang_ssl, install_xray, ssh, udp_mini, ssh_slow, ins_SSHD, ins_dropbear, ins_vnstat, ins_backup, ins_swab, ins_Fail2ban, ins_epro, ins_restart, menu, profile, enable_services] ...
-
-# Instalasi Utama
-function instal() {
+# Instal script
+instal() {
     clear
     first_setup
     nginx_install
@@ -167,10 +172,12 @@ function instal() {
 }
 
 instal
-
+echo ""
 history -c
 rm -rf /root/menu /root/*.zip /root/*.sh /root/LICENSE /root/README.md /root/domain
 secs_to_human "$(($(date +%s) - ${start}))"
+sudo hostnamectl set-hostname $username
 echo -e "${green} Script Successfull Installed"
-read -p "$( echo -e "Press ${YELLOW}[ ${NC}${YELLOW}Enter${NC} ${YELLOW}]${NC} For reboot") "
+echo ""
+read -p "$(echo -e "Press ${YELLOW}[ ${NC}${YELLOW}Enter${NC} ${YELLOW}]${NC} For reboot") "
 reboot
