@@ -76,7 +76,9 @@ NC='\e[0m'
 MYIP=$(curl -sS ipv4.icanhazip.com)
 echo -e "\e[32mloading...\e[0m"
 clear
-# // UPDATE & DEPENDENCIES
+apt install ruby -y
+gem install lolcat
+apt install wondershaper -y
 apt update -y && apt upgrade -y
 apt install -y software-properties-common curl wget unzip sudo net-tools iptables iptables-persistent \
 chrony ntpdate ruby-full python3 python3-pip vim lsof tar zip p7zip-full \
@@ -114,7 +116,6 @@ function print_success() {
         sleep 2
     fi
 }
-
 
 ### Cek root
 function is_root() {
@@ -165,17 +166,17 @@ function first_setup(){
     echo "Setup Dependencies $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
     sudo apt update -y
     apt-get install --no-install-recommends software-properties-common
-    apt-get update -y
-	apt-get install -y haproxy
+    add-apt-repository ppa:vbernat/haproxy-2.4 -y
+    apt-get -y install haproxy=2.4.\*
 elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
     echo "Setup Dependencies For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
     curl https://haproxy.debian.net/bernat.debian.org.gpg |
         gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
     echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-        http://haproxy.debian.net Bullseye-2.6 main \
+        http://haproxy.debian.net Bullseye-2.2 main \
         >/etc/apt/sources.list.d/haproxy.list
     sudo apt-get update
-    apt-get -y install haproxy=2.6.\*
+    apt-get -y install haproxy=2.2.\*
 else
     echo -e " Your OS Is Not Supported ($(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g') )"
     exit 1
