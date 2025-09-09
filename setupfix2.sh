@@ -377,7 +377,6 @@ rm -rf /etc/vmess/.vmess.db
     mkdir -p /etc/limit/trojan
     mkdir -p /etc/limit/ssh
     mkdir -p /etc/user-create
-	mkdir -p /etc/lock-vmess
     chmod +x /var/log/xray
     touch /etc/xray/domain
     touch /var/log/xray/access.log
@@ -388,7 +387,6 @@ rm -rf /etc/vmess/.vmess.db
     touch /etc/shadowsocks/.shadowsocks.db
     touch /etc/ssh/.ssh.db
     touch /etc/bot/.bot.db
-	touch /etc/lock-vmess/lock-vmess.db
     echo "& plughin Account" >>/etc/vmess/.vmess.db
     echo "& plughin Account" >>/etc/vless/.vless.db
     echo "& plughin Account" >>/etc/trojan/.trojan.db
