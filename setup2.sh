@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# ==========================
-# WARNA
-# ==========================
 Green="\e[92;1m"
 RED="\033[31m"
 YELLOW="\033[33m"
@@ -18,509 +15,300 @@ red='\e[1;31m'
 green='\e[0;32m'
 
 clear
+# // Exporint IP AddressInformation
+export IP=$( curl -sS icanhazip.com )
 
-# ==========================
-# EXPORT IP ADDRESS
-# ==========================
-export IP=$(curl -sS icanhazip.com)
-
-# ==========================
-# CLEAR SCREEN
-# ==========================
+# // Clear Data
 clear
+clear && clear && clear
+clear;clear;clear
 
-# ==========================
-# BANNER
-# ==========================
+# // Banner
 echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "  » This Will Quick Setup VPN Server On Your Server"
 echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 sleep 2
+###### IZIN SC 
 
-# ==========================
-# CHECK ARCHITECTURE
-# ==========================
-ARCH=$(uname -m)
-if [[ "$ARCH" == "x86_64" ]]; then
-    echo -e "${OK} Your Architecture Is Supported ( ${green}${ARCH}${NC} )"
+# // Checking Os Architecture
+if [[ $( uname -m | awk '{print $1}' ) == "x86_64" ]]; then
+    echo -e "${OK} Your Architecture Is Supported ( ${green}$( uname -m )${NC} )"
 else
-    echo -e "${ERROR} Your Architecture Is Not Supported ( ${YELLOW}${ARCH}${NC} )"
+    echo -e "${EROR} Your Architecture Is Not Supported ( ${YELLOW}$( uname -m )${NC} )"
     exit 1
 fi
 
-# ==========================
-# CHECK OS
-# ==========================
-OS_ID=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
-OS_NAME=$(awk -F= '/^PRETTY_NAME=/{print $2}' /etc/os-release | tr -d '"')
-
-if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
-    echo -e "${OK} Your OS Is Supported ( ${green}${OS_NAME}${NC} )"
+# // Checking System
+if [[ $( cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g' ) == "ubuntu" ]]; then
+    echo -e "${OK} Your OS Is Supported ( ${green}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
+elif [[ $( cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g' ) == "debian" ]]; then
+    echo -e "${OK} Your OS Is Supported ( ${green}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
 else
-    echo -e "${ERROR} Your OS Is Not Supported ( ${YELLOW}${OS_NAME}${NC} )"
+    echo -e "${EROR} Your OS Is Not Supported ( ${YELLOW}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
     exit 1
 fi
 
-# ==========================
-# IP ADDRESS VALIDATING
-# ==========================
-if [[ -z "$IP" ]]; then
-    echo -e "${ERROR} IP Address ( ${YELLOW}Not Detected${NC} )"
+# // IP Address Validating
+if [[ $IP == "" ]]; then
+    echo -e "${EROR} IP Address ( ${YELLOW}Not Detected${NC} )"
 else
     echo -e "${OK} IP Address ( ${green}$IP${NC} )"
 fi
 
-# ==========================
-# VALIDATE SUCCESSFUL
-# ==========================
+# // Validate Successfull
 echo ""
-read -p "$(echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
+read -p "$( echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
 echo ""
 clear
-
-# ==========================
-# ROOT & VIRTUALIZATION CHECK
-# ==========================
 if [ "${EUID}" -ne 0 ]; then
-    echo -e "${ERROR} You need to run this script as root"
-    exit 1
+		echo "You need to run this script as root"
+		exit 1
 fi
-
 if [ "$(systemd-detect-virt)" == "openvz" ]; then
-    echo -e "${ERROR} OpenVZ is not supported"
-    exit 1
+		echo "OpenVZ is not supported"
+		exit 1
 fi
-
-# ==========================
-# RE-INSTANTIATING COLORS (SAFE)
-# ==========================
 red='\e[1;31m'
 green='\e[0;32m'
 NC='\e[0m'
-
-# ==========================
-# SCRIPT PERMISSIONS
-# ==========================
+#IZIN SCRIPT
 MYIP=$(curl -sS ipv4.icanhazip.com)
 echo -e "\e[32mloading...\e[0m"
 clear
-
-# ==========================
-# INSTALL DEPENDENCIES
-# ==========================
+apt install ruby -y
+gem install lolcat
+apt install wondershaper -y
 apt update -y && apt upgrade -y
-apt install -y ruby wget curl unzip sudo net-tools iptables iptables-persistent \
+apt install -y software-properties-common curl wget unzip sudo net-tools iptables iptables-persistent \
 chrony ntpdate ruby-full python3 python3-pip vim lsof tar zip p7zip-full \
 bash-completion gnupg2 ca-certificates build-essential make cmake git screen socat dnsutils \
-vnstat rclone msmtp-mta bsd-mailx netfilter-persistent openvpn easy-rsa wondershaper software-properties-common
-
-gem install lolcat
-
+vnstat rclone msmtp-mta bsd-mailx iptables-persistent netfilter-persistent openvpn easy-rsa
 clear
+# REPO    
+    REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
 
-# ==========================
-# REPO
-# ==========================
-REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
-
-# ==========================
-# TIMER FUNCTIONS
-# ==========================
+####
 start=$(date +%s)
 secs_to_human() {
     echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
 }
-
-# ==========================
-# STATUS FUNCTIONS
-# ==========================
-print_ok() {
+### Status
+function print_ok() {
     echo -e "${OK} ${BLUE} $1 ${FONT}"
 }
-
-print_install() {
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+function print_install() {
+	echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
     echo -e "${YELLOW} » $1 ${FONT}"
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+	echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
     sleep 1
 }
 
-print_error() {
+function print_error() {
     echo -e "${ERROR} ${REDBG} $1 ${FONT}"
 }
 
-print_success() {
+function print_success() {
     if [[ 0 -eq $? ]]; then
-        echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-        echo -e "${Green} » $1 berhasil dipasang${NC}"
-        echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+		echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+        echo -e "${Green} » $1 berhasil dipasang"
+		echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
         sleep 2
     fi
 }
 
-### =========================
-### CEK ROOT
-### =========================
+### Cek root
 function is_root() {
     if [[ 0 == "$UID" ]]; then
-        print_ok "Root user detected. Starting installation process..."
+        print_ok "Root user Start installation process"
     else
-        print_error "The current user is not the root user. Please switch to root and rerun the script."
-        exit 1
-    fi
-}
-
-### =========================
-### BUAT DIREKTORI XRAY
-### =========================
-print_install "Membuat direktori Xray"
-mkdir -p /etc/xray
-curl -s ifconfig.me > /etc/xray/ipvps
-touch /etc/xray/domain
-mkdir -p /var/log/xray
-chown www-data:www-data /var/log/xray
-chmod 755 /var/log/xray
-touch /var/log/xray/access.log
-touch /var/log/xray/error.log
-mkdir -p /var/lib/kyt >/dev/null 2>&1
-
-### =========================
-### RAM INFORMATION
-### =========================
-mem_used=0
-mem_total=0
-while IFS=":" read -r key value; do
-    case $key in
-        "MemTotal") mem_total="${value//kB/}" ;;
-        "Shmem") ((mem_used+=${value//kB/})) ;;
-        "MemFree"|"Buffers"|"Cached"|"SReclaimable") ((mem_used+=${value//kB/})) ;;
-    esac
-done < /proc/meminfo
-
-Ram_Usage="$((mem_used / 1024))"
-Ram_Total="$((mem_total / 1024))"
-
-### =========================
-### SYSTEM INFORMATION
-### =========================
-export tanggal=$(date +"%d-%m-%Y - %X")
-export OS_Name=$(awk -F= '/^PRETTY_NAME=/{print $2}' /etc/os-release | tr -d '"')
-export Kernel=$(uname -r)
-export Arch=$(uname -m)
-export IP=$(curl -s https://ipinfo.io/ip/)
-
-### =========================
-### FIRST SETUP
-### =========================
-function first_setup() {
-    timedatectl set-timezone Asia/Jakarta
-    echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections
-    echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections
-    print_success "Directory Xray ready"
-
-    OS_ID=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
-
-    if [[ "$OS_ID" == "ubuntu" ]]; then
-        print_install "Setup Dependencies for $OS_Name"
-        sudo apt update -y
-        apt-get install --no-install-recommends -y software-properties-common haproxy
-    elif [[ "$OS_ID" == "debian" ]]; then
-        print_install "Setup Dependencies for $OS_Name"
-        curl -s https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-        echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net Bullseye-2.2 main" >/etc/apt/sources.list.d/haproxy.list
-        sudo apt-get update
-        apt-get -y install haproxy=2.2.*
-    else
-        print_error "Your OS is not supported ($OS_Name)"
-        exit 1
-    fi
-}
-
-### =========================
-### NGINX INSTALL
-### =========================
-function nginx_install() {
-    OS_ID=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
-    if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
-        print_install "Setup nginx for $OS_Name"
-        apt-get install -y nginx
-        print_success "Nginx installed successfully"
-    else
-        print_error "Your OS is not supported ($OS_Name)"
-    fi
-}
-
-### =========================
-### BASE PACKAGE
-### =========================
-function base_package() {
-    clear
-    print_install "Menginstall Paket Yang Dibutuhkan"
-
-    # Paket dasar
-    apt update -y && apt upgrade -y && apt dist-upgrade -y
-    apt install -y zip pwgen openssl netcat socat cron bash-completion figlet sudo ntpdate software-properties-common \
-    speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev \
-    libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev \
-    sed dirmngr libxml-parser-perl build-essential gcc g++ python3 python3-pip htop lsof tar wget curl ruby zip unzip p7zip-full \
-    msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl gnupg \
-    gnupg2 lsb-release shc cmake git screen socat xz-utils apt-transport-https jq openvpn easy-rsa
-
-    # Chrony & time sync
-    systemctl enable chronyd
-    systemctl restart chronyd
-    chronyc sourcestats -v
-    chronyc tracking -v
-    ntpdate pool.ntp.org
-
-    # Cleanup
-    apt-get clean all
-    apt-get autoremove -y
-
-    # Remove unwanted services
-    apt-get remove --purge -y exim4 ufw firewalld
-
-    # Setup iptables-persistent
-    echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections
-    echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections
-
-    print_success "Semua Paket Yang Dibutuhkan Telah Terinstall"
-}
-
-### =========================
-### PASANG DOMAIN
-### =========================
-function pasang_domain() {
-    clear
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-    echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-    echo -e "  [1] Domain Pribadi"
-    echo -e "  [2] Domain Bawaan"
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-    
-    read -p "  Silahkan Pilih Menu Domain 1 atau 2 (enter) : " host
-
-    if [[ $host == "1" ]]; then
-        read -p "   Masukkan Subdomain Anda: " host1
-        echo "IP=" >> /var/lib/kyt/ipvps.conf
-        echo "$host1" > /etc/xray/domain
-        echo "$host1" > /root/domain
-        print_success "Domain Pribadi Telah Disimpan"
-    elif [[ $host == "2" ]]; then
-        wget ${REPO}files/cf.sh -O /root/cf.sh
-        chmod +x /root/cf.sh
-        /root/cf.sh
-        rm -f /root/cf.sh
-        print_success "Domain Bawaan Telah Terpasang"
-    else
-        print_install "Random Subdomain/Domain Digunakan"
-    fi
-}
-
-### =========================
-### RESTART & INFO VPS
-### =========================
-function restart_system() {
-    MYIP=$(curl -sS ipv4.icanhazip.com)
-    echo -e "\e[32mloading...\e[0m"
-    clear
-
-    # Izin script & user info
-    izinsc="https://raw.githubusercontent.com/welwel11/izin/main/"
-
-    username=$(curl -s $izinsc | grep $MYIP | awk '{print $2}')
-    echo "$username" > /usr/bin/user
-
-    expx=$(curl -s $izinsc | grep $MYIP | awk '{print $3}')
-    echo "$expx" > /usr/bin/e
-
-    # Detail order
-    oid=$(cat /usr/bin/ver 2>/dev/null)
-    exp=$(cat /usr/bin/e)
-
-    # VPS Info
-    DATE=$(date +'%Y-%m-%d')
-    TIMEZONE=$(date +'%H:%M:%S')
-    ISP=$(curl -s ipinfo.io/org | cut -d " " -f 2-10)
-
-    # Status Expired/Active
-    today=$(date +'%Y-%m-%d')
-    Exp1=$(curl -s $izinsc | grep $MYIP | awk '{print $4}')
-    if [[ "$today" < "$Exp1" ]]; then
-        sts="(${green}Active${NC})"
-    else
-        sts="(${RED}Expired${NC})"
+        print_error "The current user is not the root user, please switch to the root user and run the script again"
     fi
 
-    # Kirim notif Telegram (opsional)
-    CHATID=""
-    KEY=""
-    URL="https://api.telegram.org/bot$KEY/sendMessage"
-    TEXT=# =========================
-# Setup Direktori & Info VPS
-# =========================
-print_install "Membuat direktori Xray"
-mkdir -p /etc/xray
-curl -s ifconfig.me > /etc/xray/ipvps
-touch /etc/xray/domain
-mkdir -p /var/log/xray
-chown www-data:www-data /var/log/xray
-chmod 755 /var/log/xray
-touch /var/log/xray/access.log
-touch /var/log/xray/error.log
-mkdir -p /var/lib/kyt >/dev/null 2>&1
+}
 
-# Ram Information
-mem_used=0
-mem_total=0
-while IFS=":" read -r a b; do
+# Buat direktori xray
+print_install "Membuat direktori xray"
+    mkdir -p /etc/xray
+    curl -s ifconfig.me > /etc/xray/ipvps
+    touch /etc/xray/domain
+    mkdir -p /var/log/xray
+    chown www-data.www-data /var/log/xray
+    chmod +x /var/log/xray
+    touch /var/log/xray/access.log
+    touch /var/log/xray/error.log
+    mkdir -p /var/lib/kyt >/dev/null 2>&1
+    # // Ram Information
+    while IFS=":" read -r a b; do
     case $a in
         "MemTotal") ((mem_used+=${b/kB})); mem_total="${b/kB}" ;;
-        "Shmem") ((mem_used+=${b/kB})) ;;
-        "MemFree" | "Buffers" | "Cached" | "SReclaimable") mem_used="$((mem_used-=${b/kB}))" ;;
+        "Shmem") ((mem_used+=${b/kB}))  ;;
+        "MemFree" | "Buffers" | "Cached" | "SReclaimable")
+        mem_used="$((mem_used-=${b/kB}))"
+    ;;
     esac
-done < /proc/meminfo
+    done < /proc/meminfo
+    Ram_Usage="$((mem_used / 1024))"
+    Ram_Total="$((mem_total / 1024))"
+    export tanggal=`date -d "0 days" +"%d-%m-%Y - %X" `
+    export OS_Name=$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/PRETTY_NAME//g' | sed 's/=//g' | sed 's/"//g' )
+    export Kernel=$( uname -r )
+    export Arch=$( uname -m )
+    export IP=$( curl -s https://ipinfo.io/ip/ )
 
-Ram_Usage="$((mem_used / 1024))"
-Ram_Total="$((mem_total / 1024))"
-
-export tanggal=$(date -d "0 days" +"%d-%m-%Y - %X")
-export OS_Name=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-export Kernel=$(uname -r)
-export Arch=$(uname -m)
-export IP=$(curl -s https://ipinfo.io/ip/)
-
-# =========================
-# Setup Environment Sistem
-# =========================
+# Change Environment System
 function first_setup(){
     timedatectl set-timezone Asia/Jakarta
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-    print_success "Directory Xray Terpasang"
+    print_success "Directory Xray"
+    if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
+    echo "Setup Dependencies $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+    sudo apt update -y
+    apt-get install --no-install-recommends software-properties-common
+    apt-get update -y
+	apt-get install -y haproxy
+elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
+    echo "Setup Dependencies For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+    curl https://haproxy.debian.net/bernat.debian.org.gpg |
+        gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
+    echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
+        http://haproxy.debian.net Bullseye-2.2 main \
+        >/etc/apt/sources.list.d/haproxy.list
+    sudo apt-get update
+    apt-get -y install haproxy=2.2.\*
+else
+    echo -e " Your OS Is Not Supported ($(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g') )"
+    exit 1
+fi
+}
 
-    OS_ID=$(grep -w ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-    OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-
-    if [[ "$OS_ID" == "ubuntu" ]]; then
-        echo "Setup Dependencies untuk $OS_NAME"
-        sudo apt update -y
-        apt-get install --no-install-recommends software-properties-common -y
-        apt-get update -y
-        apt-get install -y haproxy
-    elif [[ "$OS_ID" == "debian" ]]; then
-        echo "Setup Dependencies untuk $OS_NAME"
-        curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-        echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net Bullseye-2.2 main" >/etc/apt/sources.list.d/haproxy.list
-        sudo apt-get update
-        apt-get -y install haproxy=2.2.*
+# GEO PROJECT
+clear
+function nginx_install() {
+    # // Checking System
+    if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
+        print_install "Setup nginx For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+        # // sudo add-apt-repository ppa:nginx/stable -y 
+        sudo apt-get install nginx -y 
+    elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
+        print_success "Setup nginx For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+        apt -y install nginx 
     else
-        echo -e "OS tidak didukung: $OS_NAME"
-        exit 1
+        echo -e " Your OS Is Not Supported ( ${YELLOW}$(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')${FONT} )"
+        # // exit 1
     fi
 }
 
-# =========================
-# Install Nginx
-# =========================
-function nginx_install(){
-    OS_ID=$(grep -w ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-    OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-
-    if [[ "$OS_ID" == "ubuntu" ]]; then
-        print_install "Setup Nginx untuk $OS_NAME"
-        sudo apt-get install -y nginx
-    elif [[ "$OS_ID" == "debian" ]]; then
-        print_install "Setup Nginx untuk $OS_NAME"
-        apt-get install -y nginx
-    else
-        echo -e "OS tidak didukung: $OS_NAME"
-    fi
-}
-
-# =========================
-# Paket Dasar & Dependency
-# =========================
-function base_package(){
+# Update and remove packages
+function base_package() {
     clear
-    print_install "Menginstall Paket Dasar"
-    apt install -y zip pwgen openssl netcat socat cron bash-completion figlet
+    ########
+    print_install "Menginstall Packet Yang Dibutuhkan"
+    apt install zip pwgen openssl netcat socat cron bash-completion -y
+    apt install figlet -y
     apt update -y
     apt upgrade -y
     apt dist-upgrade -y
     systemctl enable chronyd
     systemctl restart chronyd
+    systemctl enable chrony
+    systemctl restart chrony
     chronyc sourcestats -v
     chronyc tracking -v
-    apt install -y ntpdate sudo
+    apt install ntpdate -y
+    ntpdate pool.ntp.org
+    apt install sudo -y
     sudo apt-get clean all
     sudo apt-get autoremove -y
     sudo apt-get install -y debconf-utils
-    sudo apt-get remove --purge exim4 ufw firewalld -y
+    sudo apt-get remove --purge exim4 -y
+    sudo apt-get remove --purge ufw firewalld -y
     sudo apt-get install -y --no-install-recommends software-properties-common
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-    sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev \
-        libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools \
-        libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl \
-        build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip \
-        libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent \
-        netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 lsb-release gcc shc make cmake \
-        git screen socat xz-utils apt-transport-https gnupg1 dnsutils jq openvpn easy-rsa
-    print_success "Paket Dasar Terinstall"
+    sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
+    print_success "Packet Yang Dibutuhkan"
+    
 }
-
-# =========================
-# Setup Domain
-# =========================
-function pasang_domain(){
-    clear
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-    echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-    echo -e "  [1] Domain Pribadi"
-    echo -e "  [2] Domain Bawaan"
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-    read -p "  Pilih Menu Domain (1/2): " host
-    echo ""
-    if [[ $host == "1" ]]; then
-        read -p "   Masukkan Subdomain: " host1
-        echo "IP=" >> /var/lib/kyt/ipvps.conf
-        echo "$host1" > /etc/xray/domain
-        echo "$host1" > /root/domain
-    elif [[ $host == "2" ]]; then
-        wget -q ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
-        rm -f /root/cf.sh
-    else
-        print_install "Random Subdomain/Domain akan digunakan"
-        clear
+clear
+# Fungsi input domain
+function pasang_domain() {
+echo -e ""
+clear
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+echo -e "  [1] Domain Pribadi"
+echo -e "  [2] Domain Bawaan"
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
+echo ""
+if [[ $host == "1" ]]; then
+echo -e "   \e[1;32mMasukan Domain Anda ! $NC"
+read -p "   Subdomain: " host1
+echo "IP=" >> /var/lib/kyt/ipvps.conf
+echo $host1 > /etc/xray/domain
+echo $host1 > /root/domain
+echo ""
+elif [[ $host == "2" ]]; then
+#install cf
+wget ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
+rm -f /root/cf.sh
+clear
+else
+print_install "Random Subdomain/Domain is Used"
+clear
     fi
 }
 
-# =========================
-# Restart System & Update Info
-# =========================
-function restart_system(){
-    MYIP=$(curl -sS ipv4.icanhazip.com)
-    izinsc="https://raw.githubusercontent.com/welwel11/izin/main/izin"
+clear
+#GANTI PASSWORD DEFAULT
+restart_system(){
+#IZIN SCRIPT
+MYIP=$(curl -sS ipv4.icanhazip.com)
+echo -e "\e[32mloading...\e[0m" 
+clear
+izinsc="https://raw.githubusercontent.com/welwel11/izin/main/izin"
+# USERNAME
+rm -f /usr/bin/user
+username=$(curl $izinsc | grep $MYIP | awk '{print $2}')
+echo "$username" >/usr/bin/user
+expx=$(curl $izinsc | grep $MYIP | awk '{print $3}')
+echo "$expx" >/usr/bin/e
+# DETAIL ORDER
+username=$(cat /usr/bin/user)
+oid=$(cat /usr/bin/ver)
+exp=$(cat /usr/bin/e)
+clear
+# CERTIFICATE STATUS
+d1=$(date -d "$valid" +%s)
+d2=$(date -d "$today" +%s)
+certifacate=$(((d1 - d2) / 86400))
+# VPS Information
+DATE=$(date +'%Y-%m-%d')
+datediff() {
+    d1=$(date -d "$1" +%s)
+    d2=$(date -d "$2" +%s)
+    echo -e "$COLOR1 $NC Expiry In   : $(( (d1 - d2) / 86400 )) Days"
+}
+mai="datediff "$Exp" "$DATE""
 
-    rm -f /usr/bin/user
-    username=$(curl -s $izinsc | grep $MYIP | awk '{print $2}')
-    echo "$username" >/usr/bin/user
-    expx=$(curl -s $izinsc | grep $MYIP | awk '{print $3}')
-    echo "$expx" >/usr/bin/e
-
-    username=$(cat /usr/bin/user)
-    exp=$(cat /usr/bin/e)
-    DATE=$(date +'%Y-%m-%d')
-
-    ISP=$(curl -s ipinfo.io/org | cut -d " " -f 2-10)
-    today=$(date -d "0 days" +"%Y-%m-%d")
-    Exp1=$(curl -s $izinsc | grep $MYIP | awk '{print $4}')
-    if [[ $today < $Exp1 ]]; then sts="(${green}Active${NC})"; else sts="(${RED}Expired${NC})"; fi
-
+ISP=$(curl -s ipinfo.io/org | cut -d " " -f 2-10 )
+# Status Expired Active
+Info="(${green}Active${NC})"
+Error="(${RED}ExpiRED${NC})"
+today=`date -d "0 days" +"%Y-%m-%d"`
+Exp1=$(curl $izinsc | grep $MYIP | awk '{print $4}')
+if [[ $today < $Exp1 ]]; then
+sts="${Info}"
+else
+sts="${Error}"
+fi
+TIMES="10"
+CHATID=""
+KEY=""
+URL="https://api.telegram.org/bot$KEY/sendMessage"
     TIMEZONE=$(printf '%(%H:%M:%S)T')
     TEXT="
 <code>━━━━━━━━━━━━━━━━━━━━━━━━━</code>
@@ -535,120 +323,115 @@ function restart_system(){
 <code>Exp Sc.  :</code><code>$exp</code>
 <code>━━━━━━━━━━━━━━━━━━━━━━━━━</code>
 <i>Automatic Notifications From Github</i>
-"
-    curl -s --max-time 10 -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" "https://api.telegram.org/bot$KEY/sendMessage" >/dev/null
+"'&reply_markup={"inline_keyboard":[[{"text":"ᴏʀᴅᴇʀ","url":"t.me"}]]}' 
+
+    curl -s --max-time $TIMES -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
 clear
-### =========================
-### PASANG SSL
-### =========================
+# Pasang SSL
 function pasang_ssl() {
-    clear
-    print_install "Memasang SSL Pada Domain"
-
-    rm -f /etc/xray/xray.key /etc/xray/xray.crt
+clear
+print_install "Memasang SSL Pada Domain"
+    rm -rf /etc/xray/xray.key
+    rm -rf /etc/xray/xray.crt
     domain=$(cat /root/domain)
-
-    # Stop webserver sementara
-    STOPWEBSERVER=$(lsof -i:80 | awk 'NR==2 {print $1}')
-    systemctl stop $STOPWEBSERVER 2>/dev/null
-    systemctl stop nginx 2>/dev/null
-
+    STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
     rm -rf /root/.acme.sh
-    mkdir -p /root/.acme.sh
-
-    curl -s https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
+    mkdir /root/.acme.sh
+    systemctl stop $STOPWEBSERVER
+    systemctl stop nginx
+    curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
     chmod +x /root/.acme.sh/acme.sh
-
     /root/.acme.sh/acme.sh --upgrade --auto-upgrade
     /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
     /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
-    ~/.acme.sh/acme.sh --installcert -d $domain \
-        --fullchainpath /etc/xray/xray.crt \
-        --keypath /etc/xray/xray.key --ecc
-
-    chmod 644 /etc/xray/xray.key
-    print_success "SSL Certificate Terpasang"
+    ~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+    chmod 777 /etc/xray/xray.key
+    print_success "SSL Certificate"
 }
 
-### =========================
-### MAKE FOLDER XRAY
-### =========================
 function make_folder_xray() {
-    # Hapus database lama
-    rm -f /etc/vmess/.vmess.db /etc/vless/.vless.db /etc/trojan/.trojan.db \
-          /etc/shadowsocks/.shadowsocks.db /etc/ssh/.ssh.db /etc/bot/.bot.db \
-          /etc/user-create/user.log
-
-    # Buat folder
-    mkdir -p /etc/{bot,xray,vmess,vless,trojan,shadowsocks,ssh,user-create} \
-             /usr/bin/xray /var/log/xray /var/www/html \
-             /etc/kyt/limit/{vmess,vless,trojan,ssh}/ip \
-             /etc/limit/{vmess,vless,trojan,ssh}
-
+rm -rf /etc/vmess/.vmess.db
+    rm -rf /etc/vless/.vless.db
+    rm -rf /etc/trojan/.trojan.db
+    rm -rf /etc/shadowsocks/.shadowsocks.db
+    rm -rf /etc/ssh/.ssh.db
+    rm -rf /etc/bot/.bot.db
+    rm -rf /etc/user-create/user.log
+    mkdir -p /etc/bot
+    mkdir -p /etc/xray
+    mkdir -p /etc/vmess
+    mkdir -p /etc/vless
+    mkdir -p /etc/trojan
+    mkdir -p /etc/shadowsocks
+    mkdir -p /etc/ssh
+    mkdir -p /usr/bin/xray/
+    mkdir -p /var/log/xray/
+    mkdir -p /var/www/html
+    mkdir -p /etc/kyt/limit/vmess/ip
+    mkdir -p /etc/kyt/limit/vless/ip
+    mkdir -p /etc/kyt/limit/trojan/ip
+    mkdir -p /etc/kyt/limit/ssh/ip
+    mkdir -p /etc/limit/vmess
+    mkdir -p /etc/limit/vless
+    mkdir -p /etc/limit/trojan
+    mkdir -p /etc/limit/ssh
+    mkdir -p /etc/user-create
     chmod +x /var/log/xray
-
-    # Buat file kosong
-    touch /etc/xray/domain /var/log/xray/{access.log,error.log} \
-          /etc/vmess/.vmess.db /etc/vless/.vless.db /etc/trojan/.trojan.db \
-          /etc/shadowsocks/.shadowsocks.db /etc/ssh/.ssh.db /etc/bot/.bot.db \
-          /etc/user-create/user.log
-
-    # Isi database awal
-    for file in /etc/vmess/.vmess.db /etc/vless/.vless.db /etc/trojan/.trojan.db \
-                /etc/shadowsocks/.shadowsocks.db /etc/ssh/.ssh.db; do
-        echo "& plughin Account" >> "$file"
-    done
-
+    touch /etc/xray/domain
+    touch /var/log/xray/access.log
+    touch /var/log/xray/error.log
+    touch /etc/vmess/.vmess.db
+    touch /etc/vless/.vless.db
+    touch /etc/trojan/.trojan.db
+    touch /etc/shadowsocks/.shadowsocks.db
+    touch /etc/ssh/.ssh.db
+    touch /etc/bot/.bot.db
+    echo "& plughin Account" >>/etc/vmess/.vmess.db
+    echo "& plughin Account" >>/etc/vless/.vless.db
+    echo "& plughin Account" >>/etc/trojan/.trojan.db
+    echo "& plughin Account" >>/etc/shadowsocks/.shadowsocks.db
+    echo "& plughin Account" >>/etc/ssh/.ssh.db
     echo "echo -e 'Vps Config User Account'" >> /etc/user-create/user.log
-}
-
-### =========================
-### INSTALL XRAY
-### =========================
+    }
+#Instal Xray
 function install_xray() {
-    clear
+clear
     print_install "Core Xray Latest Version"
-
-    domainSock_dir="/run/xray"
-    mkdir -p $domainSock_dir
-    chown www-data:www-data $domainSock_dir
-
-    # Ambil versi Xray terbaru
-    latest_version=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | \
-                     grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n 1)
+    domainSock_dir="/run/xray";! [ -d $domainSock_dir ] && mkdir  $domainSock_dir
+    chown www-data.www-data $domainSock_dir
     
-    bash -c "$(curl -sL https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version $latest_version
-
-    # Ambil config server
-    wget -q -O /etc/xray/config.json "${REPO}config/config.json"
-    wget -q -O /etc/systemd/system/runn.service "${REPO}files/runn.service"
-
+    # / / Ambil Xray Core Version Terbaru
+latest_version="$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n 1)"
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version 1.8.23
+ 
+    # // Ambil Config Server
+    wget -O /etc/xray/config.json "${REPO}config/config.json" >/dev/null 2>&1
+    wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" >/dev/null 2>&1
+    #chmod +x /usr/local/bin/xray
     domain=$(cat /etc/xray/domain)
     IPVS=$(cat /etc/xray/ipvps)
-    print_success "Core Xray Terinstall"
-
-    # Setup Nginx & Haproxy
-    clear
-    curl -s ipinfo.io/city >> /etc/xray/city
-    curl -s ipinfo.io/org | cut -d " " -f 2-10 >> /etc/xray/isp
-
-    print_install "Memasang Konfigurasi Packet"
-    wget -q -O /etc/haproxy/haproxy.cfg "${REPO}config/haproxy.cfg"
-    wget -q -O /etc/nginx/conf.d/xray.conf "${REPO}config/xray.conf"
+    print_success "Core Xray Latest Version"
     
+    # Settings UP Nginix Server
+    clear
+    curl -s ipinfo.io/city >>/etc/xray/city
+    curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
+    print_install "Memasang Konfigurasi Packet"
+    wget -O /etc/haproxy/haproxy.cfg "${REPO}config/haproxy.cfg" >/dev/null 2>&1
+    wget -O /etc/nginx/conf.d/xray.conf "${REPO}config/xray.conf" >/dev/null 2>&1
     sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
     sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
-    curl -s ${REPO}config/nginx.conf > /etc/nginx/nginx.conf
+    curl ${REPO}config/nginx.conf > /etc/nginx/nginx.conf
+    
+cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
 
-    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
-
+    # > Set Permission
     chmod +x /etc/systemd/system/runn.service
 
-    # Create systemd service untuk Xray
+    # > Create Service
     rm -rf /etc/systemd/system/xray.service.d
     cat >/etc/systemd/system/xray.service <<EOF
-[Unit]
 Description=Xray Service
 Documentation=https://github.com
 After=network.target nss-lookup.target
@@ -666,9 +449,9 @@ LimitNOFILE=1000000
 
 [Install]
 WantedBy=multi-user.target
-EOF
 
-    print_success "Konfigurasi Packet Selesai"
+EOF
+print_success "Konfigurasi Packet"
 }
 
 ### =========================
