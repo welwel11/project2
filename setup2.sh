@@ -358,6 +358,170 @@ function restart_system() {
     CHATID=""
     KEY=""
     URL="https://api.telegram.org/bot$KEY/sendMessage"
+    TEXT=# =========================
+# Setup Direktori & Info VPS
+# =========================
+print_install "Membuat direktori Xray"
+mkdir -p /etc/xray
+curl -s ifconfig.me > /etc/xray/ipvps
+touch /etc/xray/domain
+mkdir -p /var/log/xray
+chown www-data:www-data /var/log/xray
+chmod 755 /var/log/xray
+touch /var/log/xray/access.log
+touch /var/log/xray/error.log
+mkdir -p /var/lib/kyt >/dev/null 2>&1
+
+# Ram Information
+mem_used=0
+mem_total=0
+while IFS=":" read -r a b; do
+    case $a in
+        "MemTotal") ((mem_used+=${b/kB})); mem_total="${b/kB}" ;;
+        "Shmem") ((mem_used+=${b/kB})) ;;
+        "MemFree" | "Buffers" | "Cached" | "SReclaimable") mem_used="$((mem_used-=${b/kB}))" ;;
+    esac
+done < /proc/meminfo
+
+Ram_Usage="$((mem_used / 1024))"
+Ram_Total="$((mem_total / 1024))"
+
+export tanggal=$(date -d "0 days" +"%d-%m-%Y - %X")
+export OS_Name=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+export Kernel=$(uname -r)
+export Arch=$(uname -m)
+export IP=$(curl -s https://ipinfo.io/ip/)
+
+# =========================
+# Setup Environment Sistem
+# =========================
+function first_setup(){
+    timedatectl set-timezone Asia/Jakarta
+    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+    print_success "Directory Xray Terpasang"
+
+    OS_ID=$(grep -w ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+    OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+
+    if [[ "$OS_ID" == "ubuntu" ]]; then
+        echo "Setup Dependencies untuk $OS_NAME"
+        sudo apt update -y
+        apt-get install --no-install-recommends software-properties-common -y
+        apt-get update -y
+        apt-get install -y haproxy
+    elif [[ "$OS_ID" == "debian" ]]; then
+        echo "Setup Dependencies untuk $OS_NAME"
+        curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
+        echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net Bullseye-2.2 main" >/etc/apt/sources.list.d/haproxy.list
+        sudo apt-get update
+        apt-get -y install haproxy=2.2.*
+    else
+        echo -e "OS tidak didukung: $OS_NAME"
+        exit 1
+    fi
+}
+
+# =========================
+# Install Nginx
+# =========================
+function nginx_install(){
+    OS_ID=$(grep -w ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+    OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+
+    if [[ "$OS_ID" == "ubuntu" ]]; then
+        print_install "Setup Nginx untuk $OS_NAME"
+        sudo apt-get install -y nginx
+    elif [[ "$OS_ID" == "debian" ]]; then
+        print_install "Setup Nginx untuk $OS_NAME"
+        apt-get install -y nginx
+    else
+        echo -e "OS tidak didukung: $OS_NAME"
+    fi
+}
+
+# =========================
+# Paket Dasar & Dependency
+# =========================
+function base_package(){
+    clear
+    print_install "Menginstall Paket Dasar"
+    apt install -y zip pwgen openssl netcat socat cron bash-completion figlet
+    apt update -y
+    apt upgrade -y
+    apt dist-upgrade -y
+    systemctl enable chronyd
+    systemctl restart chronyd
+    chronyc sourcestats -v
+    chronyc tracking -v
+    apt install -y ntpdate sudo
+    sudo apt-get clean all
+    sudo apt-get autoremove -y
+    sudo apt-get install -y debconf-utils
+    sudo apt-get remove --purge exim4 ufw firewalld -y
+    sudo apt-get install -y --no-install-recommends software-properties-common
+    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+    sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev \
+        libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools \
+        libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl \
+        build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip \
+        libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent \
+        netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 lsb-release gcc shc make cmake \
+        git screen socat xz-utils apt-transport-https gnupg1 dnsutils jq openvpn easy-rsa
+    print_success "Paket Dasar Terinstall"
+}
+
+# =========================
+# Setup Domain
+# =========================
+function pasang_domain(){
+    clear
+    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+    echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
+    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+    echo -e "  [1] Domain Pribadi"
+    echo -e "  [2] Domain Bawaan"
+    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+    read -p "  Pilih Menu Domain (1/2): " host
+    echo ""
+    if [[ $host == "1" ]]; then
+        read -p "   Masukkan Subdomain: " host1
+        echo "IP=" >> /var/lib/kyt/ipvps.conf
+        echo "$host1" > /etc/xray/domain
+        echo "$host1" > /root/domain
+    elif [[ $host == "2" ]]; then
+        wget -q ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
+        rm -f /root/cf.sh
+    else
+        print_install "Random Subdomain/Domain akan digunakan"
+        clear
+    fi
+}
+
+# =========================
+# Restart System & Update Info
+# =========================
+function restart_system(){
+    MYIP=$(curl -sS ipv4.icanhazip.com)
+    izinsc="https://raw.githubusercontent.com/welwel11/izin/main/izin"
+
+    rm -f /usr/bin/user
+    username=$(curl -s $izinsc | grep $MYIP | awk '{print $2}')
+    echo "$username" >/usr/bin/user
+    expx=$(curl -s $izinsc | grep $MYIP | awk '{print $3}')
+    echo "$expx" >/usr/bin/e
+
+    username=$(cat /usr/bin/user)
+    exp=$(cat /usr/bin/e)
+    DATE=$(date +'%Y-%m-%d')
+
+    ISP=$(curl -s ipinfo.io/org | cut -d " " -f 2-10)
+    today=$(date -d "0 days" +"%Y-%m-%d")
+    Exp1=$(curl -s $izinsc | grep $MYIP | awk '{print $4}')
+    if [[ $today < $Exp1 ]]; then sts="(${green}Active${NC})"; else sts="(${RED}Expired${NC})"; fi
+
+    TIMEZONE=$(printf '%(%H:%M:%S)T')
     TEXT="
 <code>━━━━━━━━━━━━━━━━━━━━━━━━━</code>
 <b>PREMIUM AUTOSCRIPT</b>
@@ -369,12 +533,10 @@ function restart_system() {
 <code>DATE     :</code><code>$DATE</code>
 <code>Time     :</code><code>$TIMEZONE</code>
 <code>Exp Sc.  :</code><code>$exp</code>
-<code>Status   :</code><code>$sts</code>
 <code>━━━━━━━━━━━━━━━━━━━━━━━━━</code>
 <i>Automatic Notifications From Github</i>
-'&reply_markup={"inline_keyboard":[[{"text":"ᴏʀᴅᴇʀ","url":"t.me"}]]}'
-
-    curl -s --max-time 10 -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+"
+    curl -s --max-time 10 -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" "https://api.telegram.org/bot$KEY/sendMessage" >/dev/null
 }
 clear
 ### =========================
