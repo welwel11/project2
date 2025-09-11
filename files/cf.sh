@@ -1,27 +1,38 @@
 #!/bin/bash
 YELLOW="\033[33m"
-green='\e[0;32m'
+GREEN='\e[0;32m'
+FONT="\e[0m"
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # Install dependencies
-apt install jq curl -y
+apt update && apt install jq curl -y
+
+# Bersihkan folder sebelumnya
 rm -rf /root/xray/scdomain
 mkdir -p /root/xray
 clear
+
 echo ""
-echo ""
+echo -e "${GREEN} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
+echo -e "${GREEN} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
 echo ""
 
-# Input subdomain dari user
-echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
-echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-read -rp "Domain Random: " -e sub
+# Pilih prefix random
+PREFIXES=("vpn" "user" "srv")
+PREFIX=${PREFIXES[$RANDOM % ${#PREFIXES[@]}]}
+
+# Generate angka random 2-3 digit
+NUM=$(shuf -i 10-999 -n 1)
+
+# Gabungkan menjadi subdomain
 DOMAIN=jnstorevpn.biz.id
-SUB_DOMAIN=${sub}.jnstorevpn.biz.id
+SUB_DOMAIN="${PREFIX}${NUM}.${DOMAIN}"
+
+# Cloudflare credentials
 CF_ID=jonijoni199210@gmail.com
 CF_KEY=b3179931dedce6aaad8692d44422639b81921
+
 set -euo pipefail
 IP=$(curl -sS ifconfig.me)
 
@@ -41,11 +52,11 @@ RECORD=$(curl -sLX GET "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_r
 
 # Jika record tidak ditemukan, buat yang baru
 if [[ "${#RECORD}" -le 10 ]]; then
-RECORD=$(curl -sLX POST "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_records" \
--H "X-Auth-Email: ${CF_ID}" \
--H "X-Auth-Key: ${CF_KEY}" \
--H "Content-Type: application/json" \
---data '{"type":"A","name":"'${SUB_DOMAIN}'","content":"'${IP}'","ttl":120,"proxied":false}' | jq -r .result.id)
+    RECORD=$(curl -sLX POST "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_records" \
+    -H "X-Auth-Email: ${CF_ID}" \
+    -H "X-Auth-Key: ${CF_KEY}" \
+    -H "Content-Type: application/json" \
+    --data '{"type":"A","name":"'${SUB_DOMAIN}'","content":"'${IP}'","ttl":120,"proxied":false}' | jq -r .result.id)
 fi
 
 # Update DNS record jika sudah ada
