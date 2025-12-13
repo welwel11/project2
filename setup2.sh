@@ -339,9 +339,9 @@ udp_mini() {
     chmod +x /usr/local/kyt/udp-mini
 
     for i in 1 2 3; do
-        wget -q -O /etc/systemd/system/udp-mini-$i.service "${REPO}files/udp-mini-$i.service"
-        systemctl enable udp-mini-$i
-        systemctl restart udp-mini-$i
+        wget -q -O /etc/systemd/system/udp-mini-1.service "${REPO}files/udp-mini-1.service"
+        systemctl enable udp-mini-1
+        systemctl restart udp-mini-1
     done
 
     print_success "Limit IP Service"
