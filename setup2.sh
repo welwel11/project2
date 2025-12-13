@@ -331,26 +331,25 @@ ssh_config() {
 }
 
 # ===== UDP MINI =====
-#udp_mini() {
-#    clear
-#    print_install "Memasang Service Limit IP & Quota"
-#
-#    wget -q -O /tmp/fv-tunnel "${REPO}config/fv-tunnel"
-#    chmod +x /tmp/fv-tunnel
-#    /tmp/fv-tunnel
-#
-#    mkdir -p /usr/local/kyt
-#    wget -q -O /usr/local/kyt/udp-mini "${REPO}files/udp-mini"
-#    chmod +x /usr/local/kyt/udp-mini
-#
-#    for i in 1 2 3; do
-#        wget -q -O /etc/systemd/system/udp-mini-1.service "${REPO}files/udp-mini-1.service"
-#        systemctl enable udp-mini-1
-#        systemctl restart udp-mini-1
-#    done
-#
-#    print_success "Limit IP Service"
-#}
+udp_mini() {
+    clear
+    print_install "Memasang Service Limit IP & Quota"
+
+    wget -q -O /tmp/fv-tunnel "${REPO}config/fv-tunnel"
+    chmod +x /tmp/fv-tunnel
+    /tmp/fv-tunnel
+
+    wget -q -O /usr/local/kyt/udp-mini "${REPO}files/udp-mini"
+    chmod +x /usr/local/kyt/udp-mini
+
+    for i in 1 2 3; do
+        wget -q -O /etc/systemd/system/udp-mini-1.service "${REPO}files/udp-mini-1.service"
+        systemctl enable udp-mini-1
+        systemctl restart udp-mini-1
+    done
+
+    print_success "Limit IP Service"
+}
 
 # ===== SLOWDNS =====
 ssh_slow() {
