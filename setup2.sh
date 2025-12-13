@@ -330,24 +330,15 @@ ssh_config() {
     print_success "SSH Config"
 }
 
-# ===== UDP MINI =====
-udp_mini() {
+# ===== LIMIT IP =====
+limit_ip() {
     clear
     print_install "Memasang Service Limit IP & Quota"
 
     wget -q -O /tmp/fv-tunnel "${REPO}config/fv-tunnel"
     chmod +x /tmp/fv-tunnel
     /tmp/fv-tunnel
-
-    wget -q -O /usr/local/kyt/udp-mini "${REPO}files/udp-mini"
-    chmod +x /usr/local/kyt/udp-mini
-
-    for i in 1 2 3; do
-        wget -q -O /etc/systemd/system/udp-mini-1.service "${REPO}files/udp-mini-1.service"
-        systemctl enable udp-mini-1
-        systemctl restart udp-mini-1
-    done
-
+    
     print_success "Limit IP Service"
 }
 
@@ -689,7 +680,7 @@ instal(){
     pasang_ssl
     install_xray
     ssh_config
-    udp_mini
+    limit_ip
     ssh_slow
     ins_SSHD
     ins_dropbear
