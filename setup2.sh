@@ -388,25 +388,23 @@ EOF
 ins_vnstat() {
     clear
     print_install "Menginstall Vnstat"
+
     apt install -y vnstat
+
     NET=$(ip route | awk '/default/ {print $5}')
-    vnstat -u -i "$NET"
-    chown -R vnstat:vnstat /var/lib/vnstat
+
+    systemctl stop vnstat
+    vnstat --add -i "$NET" 2>/dev/null || true
     systemctl enable vnstat
     systemctl restart vnstat
-    systemctl status vnstat --no-pager
-    print_success "Vnstat"
-}
 
-# ===== OPENVPN =====
-ins_openvpn() {
-    clear
-    print_install "Menginstall OpenVPN"
-    wget -q -O /root/openvpn-install.sh "${REPO}files/openvpn"
-    chmod +x /root/openvpn-install.sh
-    /root/openvpn-install.sh
-    systemctl restart openvpn
-    print_success "OpenVPN"
+    if systemctl is-active --quiet vnstat; then
+        print_success "Vnstat aktif (interface: $NET)"
+    else
+        print_error "Vnstat gagal start"
+        systemctl status vnstat --no-pager
+        exit 1
+    fi
 }
 
 # ===== BACKUP SERVER =====
