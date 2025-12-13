@@ -84,28 +84,33 @@ export Arch="$(uname -m)"
 # ==== FIRST SETUP ====
 first_setup() {
     timedatectl set-timezone Asia/Jakarta
+
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-    print_success "Directory Xray"
-    if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
-    echo "Setup Dependencies $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-    sudo apt update -y
-    apt-get install --no-install-recommends software-properties-common
-    apt-get update -y
-	apt-get install -y haproxy
-elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
-    echo "Setup Dependencies For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-    curl https://haproxy.debian.net/bernat.debian.org.gpg |
-        gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-    echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-        http://haproxy.debian.net Bullseye-2.2 main \
-        >/etc/apt/sources.list.d/haproxy.list
-    sudo apt-get update
-    apt-get -y install haproxy=2.2.\*
-else
-    echo -e " Your OS Is Not Supported ($(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g') )"
-    exit 1
-fi
+
+    if [[ "$ID" == "ubuntu" ]]; then
+        echo "Setup Dependencies for $PRETTY_NAME"
+        apt update -y
+        apt install -y --no-install-recommends software-properties-common
+        apt install -y haproxy
+
+    elif [[ "$ID" == "debian" ]]; then
+        echo "Setup Dependencies for $PRETTY_NAME"
+
+        curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg \
+        | gpg --dearmor -o /usr/share/keyrings/haproxy.gpg
+
+        echo "deb [signed-by=/usr/share/keyrings/haproxy.gpg] \
+http://haproxy.debian.net ${VERSION_CODENAME}-backports-2.2 main" \
+        > /etc/apt/sources.list.d/haproxy.list
+
+        apt update -y
+        apt install -y haproxy
+
+    else
+        echo "OS Not Supported: $PRETTY_NAME"
+        exit 1
+    fi
 }
 
 # ==== INSTALL NGINX ====
@@ -214,10 +219,19 @@ pasang_ssl() {
     print_install "Memasang SSL Pada Domain"
 
     domain=$(cat /root/domain)
+
+    # STOP SEMUA YANG PAKE PORT 80/443
+    systemctl stop nginx 2>/dev/null
+    systemctl stop haproxy 2>/dev/null
+    systemctl stop xray 2>/dev/null
+
+    fuser -k 80/tcp 2>/dev/null
+    fuser -k 443/tcp 2>/dev/null
+
     rm -rf /etc/xray/xray.key /etc/xray/xray.crt
     rm -rf /root/.acme.sh
 
-    systemctl stop nginx 2>/dev/null
+    sleep 2
 
     mkdir -p /root/.acme.sh
     curl -fsSL https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
@@ -225,12 +239,16 @@ pasang_ssl() {
 
     /root/.acme.sh/acme.sh --upgrade --auto-upgrade
     /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-    /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256
+
+    /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256 \
+      --force
+
     /root/.acme.sh/acme.sh --installcert -d "$domain" \
         --fullchainpath /etc/xray/xray.crt \
         --keypath /etc/xray/xray.key --ecc
 
     chmod 600 /etc/xray/xray.key
+
     print_success "SSL Certificate"
 }
 
@@ -350,7 +368,7 @@ udp_mini() {
 #    chmod +x /tmp/nameserver
 #    /tmp/nameserver | tee /root/install.log
 #    rm -f /tmp/nameserver
-#    print_success "SlowDNS"
+    print_success "SlowDNS"
 }
 
 # ===== SSHD =====
