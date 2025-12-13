@@ -153,89 +153,81 @@ clear
 # ===== FUNGSI SETUP DOMAIN =====
 pasang_domain() {
     clear
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-    echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-    echo -e "  [1] Domain Pribadi"
-    echo -e "  [2] Domain Bawaan"
-    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-
-    read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
-    echo ""
-
-    if [[ "$host" == "1" ]]; then
-        echo -e "   \e[1;32mMasukan Domain Anda ! ${NC}"
-        read -p "   Subdomain: " host1
-
-        mkdir -p /var/lib/kyt
-        echo "IP=" > /var/lib/kyt/ipvps.conf
-        echo "$host1" > /etc/xray/domain
-        echo "$host1" > /root/domain
-
-    elif [[ "$host" == "2" ]]; then
-        wget -q -O /root/cf.sh "${REPO}files/cf.sh"
-        chmod +x /root/cf.sh
-        /root/cf.sh
-        rm -f /root/cf.sh
-        clear
-    else
-        print_install "Random Subdomain / Domain Digunakan"
-        clear
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+echo -e "  [1] Domain Pribadi"
+echo -e "  [2] Domain Bawaan"
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
+echo ""
+if [[ $host == "1" ]]; then
+echo -e "   \e[1;32mMasukan Domain Anda ! $NC"
+read -p "   Subdomain: " host1
+echo "IP=" >> /var/lib/kyt/ipvps.conf
+echo $host1 > /etc/xray/domain
+echo $host1 > /root/domain
+echo ""
+elif [[ $host == "2" ]]; then
+#install cf
+wget ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
+rm -f /root/cf.sh
+clear
+else
+print_install "Random Subdomain/Domain is Used"
+clear
     fi
 }
 
 # ===== CEK LICENSE =====
-restart_system() {
-    MYIP=$(curl -s ipv4.icanhazip.com)
-    izinsc="https://raw.githubusercontent.com/welwel11/izin/main/izin"
-
-    username=$(curl -s "$izinsc" | grep "$MYIP" | awk '{print $2}')
-    exp=$(curl -s "$izinsc" | grep "$MYIP" | awk '{print $3}')
-
-    if [[ -z "$username" || -z "$exp" ]]; then
-        echo -e "\e[31mLicense Not Found\e[0m"
-        exit 1
-    fi
-
-    echo "$username" > /usr/bin/user
-    echo "$exp" > /usr/bin/e
-
-    today=$(date +"%Y-%m-%d")
-    d1=$(date -d "$exp" +%s 2>/dev/null)
-    d2=$(date -d "$today" +%s)
-
-    if [[ -z "$d1" ]]; then
-        echo -e "\e[31mLicense Expired / Invalid Date\e[0m"
-        exit 1
-    fi
-
-    certifacate=$(((d1 - d2) / 86400))
-    echo -e "Expiry In   : ${certifacate} Days"
+restart_system(){
+#IZIN SCRIPT
+MYIP=$(curl -sS ipv4.icanhazip.com)
+echo -e "\e[32mloading...\e[0m" 
+clear
+izinsc="https://raw.githubusercontent.com/welwel11/izin/main/izin"
+# USERNAME
+rm -f /usr/bin/user
+username=$(curl $izinsc | grep $MYIP | awk '{print $2}')
+echo "$username" >/usr/bin/user
+expx=$(curl $izinsc | grep $MYIP | awk '{print $3}')
+echo "$expx" >/usr/bin/e
+# DETAIL ORDER
+username=$(cat /usr/bin/user)
+oid=$(cat /usr/bin/ver)
+exp=$(cat /usr/bin/e)
+clear
+# CERTIFICATE STATUS
+d1=$(date -d "$valid" +%s)
+d2=$(date -d "$today" +%s)
+certifacate=$(((d1 - d2) / 86400))
+# VPS Information
+DATE=$(date +'%Y-%m-%d')
+datediff() {
+    d1=$(date -d "$1" +%s)
+    d2=$(date -d "$2" +%s)
+    echo -e "$COLOR1 $NC Expiry In   : $(( (d1 - d2) / 86400 )) Days"
 }
 
 # ===== PASANG SSL =====
 pasang_ssl() {
     clear
     print_install "Memasang SSL Pada Domain"
-
+    rm -rf /etc/xray/xray.key
+    rm -rf /etc/xray/xray.crt
     domain=$(cat /root/domain)
-    rm -rf /etc/xray/xray.key /etc/xray/xray.crt
+    STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
     rm -rf /root/.acme.sh
-
-    systemctl stop nginx 2>/dev/null
-
-    mkdir -p /root/.acme.sh
-    curl -fsSL https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
+    mkdir /root/.acme.sh
+    systemctl stop $STOPWEBSERVER
+    systemctl stop nginx
+    curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
     chmod +x /root/.acme.sh/acme.sh
-
     /root/.acme.sh/acme.sh --upgrade --auto-upgrade
     /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-    /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256
-    /root/.acme.sh/acme.sh --installcert -d "$domain" \
-        --fullchainpath /etc/xray/xray.crt \
-        --keypath /etc/xray/xray.key --ecc
-
-    chmod 600 /etc/xray/xray.key
+    /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
+    ~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+    chmod 777 /etc/xray/xray.key
     print_success "SSL Certificate"
 }
 
