@@ -357,9 +357,9 @@ ins_SSHD() {
 ins_dropbear() {
     clear
     print_install "Menginstall Dropbear"
-    apt-get install -y dropbear >/dev/null 2>&1
+    apt-get install dropbear -y > /dev/null 2>&1
     wget -q -O /etc/default/dropbear "${REPO}config/dropbear.conf"
-    chmod 644 /etc/default/dropbear
+    chmod +x /etc/default/dropbear
     systemctl restart dropbear
     systemctl status dropbear --no-pager
     print_success "Dropbear"
