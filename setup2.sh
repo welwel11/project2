@@ -51,32 +51,12 @@ print_success() {
 
 # ==== XRAY DIRECTORY ====
 print_install "Membuat direktori xray"
-    mkdir -p /etc/xray
-    curl -s ifconfig.me > /etc/xray/ipvps
-    touch /etc/xray/domain
-    mkdir -p /var/log/xray
-    chown www-data.www-data /var/log/xray
-    chmod +x /var/log/xray
-    touch /var/log/xray/access.log
-    touch /var/log/xray/error.log
-    mkdir -p /var/lib/kyt >/dev/null 2>&1
-    # // Ram Information
-    while IFS=":" read -r a b; do
-    case $a in
-        "MemTotal") ((mem_used+=${b/kB})); mem_total="${b/kB}" ;;
-        "Shmem") ((mem_used+=${b/kB}))  ;;
-        "MemFree" | "Buffers" | "Cached" | "SReclaimable")
-        mem_used="$((mem_used-=${b/kB}))"
-    ;;
-    esac
-    done < /proc/meminfo
-    Ram_Usage="$((mem_used / 1024))"
-    Ram_Total="$((mem_total / 1024))"
-    export tanggal=`date -d "0 days" +"%d-%m-%Y - %X" `
-    export OS_Name=$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/PRETTY_NAME//g' | sed 's/=//g' | sed 's/"//g' )
-    export Kernel=$( uname -r )
-    export Arch=$( uname -m )
-    export IP=$( curl -s https://ipinfo.io/ip/ )
+mkdir -p /etc/xray /var/log/xray /var/lib/kyt
+curl -s ifconfig.me > /etc/xray/ipvps
+touch /etc/xray/domain
+touch /var/log/xray/access.log /var/log/xray/error.log
+chown www-data:www-data /var/log/xray
+chmod 755 /var/log/xray
 
 # ==== RAM INFORMATION ====
 mem_used=0
@@ -104,33 +84,28 @@ export Arch="$(uname -m)"
 # ==== FIRST SETUP ====
 first_setup() {
     timedatectl set-timezone Asia/Jakarta
-
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-
-    if [[ "$ID" == "ubuntu" ]]; then
-        echo "Setup Dependencies for $PRETTY_NAME"
-        apt update -y
-        apt install -y --no-install-recommends software-properties-common
-        apt install -y haproxy
-
-    elif [[ "$ID" == "debian" ]]; then
-        echo "Setup Dependencies for $PRETTY_NAME"
-
-        curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg \
-        | gpg --dearmor -o /usr/share/keyrings/haproxy.gpg
-
-        echo "deb [signed-by=/usr/share/keyrings/haproxy.gpg] \
-http://haproxy.debian.net ${VERSION_CODENAME}-backports-2.2 main" \
-        > /etc/apt/sources.list.d/haproxy.list
-
-        apt update -y
-        apt install -y haproxy
-
-    else
-        echo "OS Not Supported: $PRETTY_NAME"
-        exit 1
-    fi
+    print_success "Directory Xray"
+    if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
+    echo "Setup Dependencies $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+    sudo apt update -y
+    apt-get install --no-install-recommends software-properties-common
+    apt-get update -y
+	apt-get install -y haproxy
+elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
+    echo "Setup Dependencies For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+    curl https://haproxy.debian.net/bernat.debian.org.gpg |
+        gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
+    echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
+        http://haproxy.debian.net Bullseye-2.2 main \
+        >/etc/apt/sources.list.d/haproxy.list
+    sudo apt-get update
+    apt-get -y install haproxy=2.2.\*
+else
+    echo -e " Your OS Is Not Supported ($(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g') )"
+    exit 1
+fi
 }
 
 # ==== INSTALL NGINX ====
@@ -173,81 +148,89 @@ clear
 # ===== FUNGSI SETUP DOMAIN =====
 pasang_domain() {
     clear
-echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
-echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-echo -e "  [1] Domain Pribadi"
-echo -e "  [2] Domain Bawaan"
-echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
-read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
-echo ""
-if [[ $host == "1" ]]; then
-echo -e "   \e[1;32mMasukan Domain Anda ! $NC"
-read -p "   Subdomain: " host1
-echo "IP=" >> /var/lib/kyt/ipvps.conf
-echo $host1 > /etc/xray/domain
-echo $host1 > /root/domain
-echo ""
-elif [[ $host == "2" ]]; then
-#install cf
-wget ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
-rm -f /root/cf.sh
-clear
-else
-print_install "Random Subdomain/Domain is Used"
-clear
+    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+    echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
+    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+    echo -e "  [1] Domain Pribadi"
+    echo -e "  [2] Domain Bawaan"
+    echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+
+    read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
+    echo ""
+
+    if [[ "$host" == "1" ]]; then
+        echo -e "   \e[1;32mMasukan Domain Anda ! ${NC}"
+        read -p "   Subdomain: " host1
+
+        mkdir -p /var/lib/kyt
+        echo "IP=" > /var/lib/kyt/ipvps.conf
+        echo "$host1" > /etc/xray/domain
+        echo "$host1" > /root/domain
+
+    elif [[ "$host" == "2" ]]; then
+        wget -q -O /root/cf.sh "${REPO}files/cf.sh"
+        chmod +x /root/cf.sh
+        /root/cf.sh
+        rm -f /root/cf.sh
+        clear
+    else
+        print_install "Random Subdomain / Domain Digunakan"
+        clear
     fi
 }
 
 # ===== CEK LICENSE =====
-restart_system(){
-#IZIN SCRIPT
-MYIP=$(curl -sS ipv4.icanhazip.com)
-echo -e "\e[32mloading...\e[0m" 
-clear
-izinsc="https://raw.githubusercontent.com/welwel11/izin/main/izin"
-# USERNAME
-rm -f /usr/bin/user
-username=$(curl $izinsc | grep $MYIP | awk '{print $2}')
-echo "$username" >/usr/bin/user
-expx=$(curl $izinsc | grep $MYIP | awk '{print $3}')
-echo "$expx" >/usr/bin/e
-# DETAIL ORDER
-username=$(cat /usr/bin/user)
-oid=$(cat /usr/bin/ver)
-exp=$(cat /usr/bin/e)
-clear
-# CERTIFICATE STATUS
-d1=$(date -d "$valid" +%s)
-d2=$(date -d "$today" +%s)
-certifacate=$(((d1 - d2) / 86400))
-# VPS Information
-DATE=$(date +'%Y-%m-%d')
-datediff() {
-    d1=$(date -d "$1" +%s)
-    d2=$(date -d "$2" +%s)
-    echo -e "$COLOR1 $NC Expiry In   : $(( (d1 - d2) / 86400 )) Days"
+restart_system() {
+    MYIP=$(curl -s ipv4.icanhazip.com)
+    izinsc="https://raw.githubusercontent.com/welwel11/izin/main/izin"
+
+    username=$(curl -s "$izinsc" | grep "$MYIP" | awk '{print $2}')
+    exp=$(curl -s "$izinsc" | grep "$MYIP" | awk '{print $3}')
+
+    if [[ -z "$username" || -z "$exp" ]]; then
+        echo -e "\e[31mLicense Not Found\e[0m"
+        exit 1
+    fi
+
+    echo "$username" > /usr/bin/user
+    echo "$exp" > /usr/bin/e
+
+    today=$(date +"%Y-%m-%d")
+    d1=$(date -d "$exp" +%s 2>/dev/null)
+    d2=$(date -d "$today" +%s)
+
+    if [[ -z "$d1" ]]; then
+        echo -e "\e[31mLicense Expired / Invalid Date\e[0m"
+        exit 1
+    fi
+
+    certifacate=$(((d1 - d2) / 86400))
+    echo -e "Expiry In   : ${certifacate} Days"
 }
 
 # ===== PASANG SSL =====
 pasang_ssl() {
     clear
     print_install "Memasang SSL Pada Domain"
-    rm -rf /etc/xray/xray.key
-    rm -rf /etc/xray/xray.crt
+
     domain=$(cat /root/domain)
-    STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
+    rm -rf /etc/xray/xray.key /etc/xray/xray.crt
     rm -rf /root/.acme.sh
-    mkdir /root/.acme.sh
-    systemctl stop $STOPWEBSERVER
-    systemctl stop nginx
-    curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
+
+    systemctl stop nginx 2>/dev/null
+
+    mkdir -p /root/.acme.sh
+    curl -fsSL https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
     chmod +x /root/.acme.sh/acme.sh
+
     /root/.acme.sh/acme.sh --upgrade --auto-upgrade
     /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-    /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
-    ~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
-    chmod 777 /etc/xray/xray.key
+    /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256
+    /root/.acme.sh/acme.sh --installcert -d "$domain" \
+        --fullchainpath /etc/xray/xray.crt \
+        --keypath /etc/xray/xray.key --ecc
+
+    chmod 600 /etc/xray/xray.key
     print_success "SSL Certificate"
 }
 
@@ -368,7 +351,7 @@ udp_mini() {
 #    /tmp/nameserver | tee /root/install.log
 #    rm -f /tmp/nameserver
 #    print_success "SlowDNS"
-#}
+}
 
 # ===== SSHD =====
 ins_SSHD() {
