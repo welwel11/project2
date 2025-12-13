@@ -219,16 +219,17 @@ pasang_ssl() {
     print_install "Memasang SSL Pada Domain"
 
     domain=$(cat /root/domain)
-    rm -rf /etc/xray/xray.key /etc/xray/xray.crt
-    rm -rf /root/.acme.sh
 
     systemctl stop nginx 2>/dev/null
+    systemctl stop haproxy 2>/dev/null
+    systemctl stop xray 2>/dev/null
+
+    rm -rf /etc/xray/xray.key /etc/xray/xray.crt /root/.acme.sh
 
     mkdir -p /root/.acme.sh
     curl -fsSL https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
     chmod +x /root/.acme.sh/acme.sh
 
-    /root/.acme.sh/acme.sh --upgrade --auto-upgrade
     /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
     /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256
     /root/.acme.sh/acme.sh --installcert -d "$domain" \
@@ -236,6 +237,10 @@ pasang_ssl() {
         --keypath /etc/xray/xray.key --ecc
 
     chmod 600 /etc/xray/xray.key
+
+    systemctl start nginx
+    systemctl start haproxy
+
     print_success "SSL Certificate"
 }
 
