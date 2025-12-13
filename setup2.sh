@@ -330,7 +330,7 @@ udp_mini() {
     clear
     print_install "Memasang Service Limit IP & Quota"
 
-    wget -q -O /tmp/fv-tunnel https://raw.githubusercontent.com/welwel11/project2/main/config/fv-tunnel
+    wget -q -O /tmp/fv-tunnel "${REPO}config/fv-tunnel"
     chmod +x /tmp/fv-tunnel
     /tmp/fv-tunnel
 
