@@ -348,15 +348,15 @@ udp_mini() {
 }
 
 # ===== SLOWDNS =====
-ssh_slow() {
-    clear
-    print_install "Memasang modul SlowDNS Server"
-    wget -q -O /tmp/nameserver "${REPO}files/nameserver"
-    chmod +x /tmp/nameserver
-    /tmp/nameserver | tee /root/install.log
-    rm -f /tmp/nameserver
-    print_success "SlowDNS"
-}
+#ssh_slow() {
+#    clear
+#    print_install "Memasang modul SlowDNS Server"
+#    wget -q -O /tmp/nameserver "${REPO}files/nameserver"
+#    chmod +x /tmp/nameserver
+#    /tmp/nameserver | tee /root/install.log
+#    rm -f /tmp/nameserver
+#    print_success "SlowDNS"
+#}
 
 # ===== SSHD =====
 ins_SSHD() {
