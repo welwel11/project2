@@ -368,8 +368,8 @@ udp_mini() {
 #    chmod +x /tmp/nameserver
 #    /tmp/nameserver | tee /root/install.log
 #    rm -f /tmp/nameserver
-    print_success "SlowDNS"
-}
+#  print_success "SlowDNS"
+#}
 
 # ===== SSHD =====
 ins_SSHD() {
