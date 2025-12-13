@@ -184,58 +184,50 @@ make_folder_xray() {
 }
 
 # Input domain
-pasang_domain() {
-    print_install "Setting up domain"
-    echo -e "1) Custom Domain"
-    echo -e "2) Random Subdomain (Cloudflare)"
-    read -p "Choose [1-2]: " domain_choice
-
-    if [[ "$domain_choice" == "1" ]]; then
-        read -p "Enter your domain: " domain
-        echo "$domain" > /etc/xray/domain
-        echo "$domain" > /root/domain
-    elif [[ "$domain_choice" == "2" ]]; then
-        wget -q ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
-        rm -f cf.sh
-        domain=$(cat /etc/xray/domain)
-    else
-        echo "Using IP as fallback"
-        domain="$IP"
-        echo "$domain" > /etc/xray/domain
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+echo -e "${YELLOW}» SETUP DOMAIN CLOUDFLARE ${FONT}"
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+echo -e "  [1] Domain Pribadi"
+echo -e "  [2] Domain Bawaan"
+echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
+read -p "  Silahkan Pilih Menu Domain 1 or 2 (enter) : " host
+echo ""
+if [[ $host == "1" ]]; then
+echo -e "   \e[1;32mMasukan Domain Anda ! $NC"
+read -p "   Subdomain: " host1
+echo "IP=" >> /var/lib/kyt/ipvps.conf
+echo $host1 > /etc/xray/domain
+echo $host1 > /root/domain
+echo ""
+elif [[ $host == "2" ]]; then
+#install cf
+wget ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
+rm -f /root/cf.sh
+clear
+else
+print_install "Random Subdomain/Domain is Used"
+clear
     fi
-    export domain
-    print_success "Domain: $domain"
 }
 
-# Pasang SSL (dengan fallback self-signed)
-pasang_ssl() {
-    print_install "Installing SSL Certificate"
-    domain=$(cat /etc/xray/domain)
-
-    systemctl stop nginx haproxy
-
+clear
+print_install "Memasang SSL Pada Domain"
+    rm -rf /etc/xray/xray.key
+    rm -rf /etc/xray/xray.crt
+    domain=$(cat /root/domain)
+    STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
+    rm -rf /root/.acme.sh
+    mkdir /root/.acme.sh
+    systemctl stop $STOPWEBSERVER
+    systemctl stop nginx
     curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
     chmod +x /root/.acme.sh/acme.sh
     /root/.acme.sh/acme.sh --upgrade --auto-upgrade
     /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-
-    if /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256 --force > /tmp/acme.log 2>&1; then
-        /root/.acme.sh/acme.sh --installcert -d "$domain" --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
-        echo -e "${Green}» Let's Encrypt certificate berhasil dipasang${NC}"
-        ssl_type="Let's Encrypt"
-    else
-        echo -e "${YELLOW}» Gagal issue Let's Encrypt${NC}"
-        openssl req -new -newkey rsa:2048 -days 3650 -nodes -x509 \
-            -subj "/C=ID/ST=Jakarta/L=Jakarta/O=Personal VPN/OU=VPN Server/CN=$domain" \
-            -keyout /etc/xray/xray.key -out /etc/xray/xray.crt
-        echo -e "${Green}» Self-signed certificate dipasang${NC}"
-        ssl_type="Self-Signed (Fallback)"
-    fi
-
-    chmod 644 /etc/xray/xray.{crt,key}
-    cat /etc/xray/xray.crt /etc/xray/xray.key > /etc/haproxy/hap.pem
-
-    print_success "SSL Certificate ($ssl_type)"
+    /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
+    ~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+    chmod 777 /etc/xray/xray.key
+    print_success "SSL Certificate"
 }
 
 # Install Xray Core (latest version)
