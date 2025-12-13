@@ -64,7 +64,16 @@ if [[ "$(systemd-detect-virt)" == "openvz" ]]; then
     echo -e "${ERROR} OpenVZ is not supported"
     exit 1
 fi
-
+clear
+apt install ruby -y
+gem install lolcat
+apt install wondershaper -y
+apt update -y && apt upgrade -y
+apt install -y software-properties-common curl wget unzip sudo net-tools iptables iptables-persistent \
+chrony ntpdate ruby-full python3 python3-pip vim lsof tar zip p7zip-full \
+bash-completion gnupg2 ca-certificates build-essential make cmake git screen socat dnsutils \
+vnstat rclone msmtp-mta bsd-mailx iptables-persistent netfilter-persistent openvpn easy-rsa
+clear
 # Repo file konfigurasi
 REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
 
