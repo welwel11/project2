@@ -1,14 +1,4 @@
-# ==== IP ADDRESS VALIDATION ====
-if [[ -z "$IP" ]]; then
-    echo -e "${ERROR} IP Address ( ${YELLOW}Not Detected${NC} )"
-    exit 1
-else
-    echo -e "${OK} IP Address ( ${green}${IP}${NC} )"
-fi
-
-echo ""
-read -rp "Press [ Enter ] For Starting Installation..."
-clear
+#!/bin/bash
 
 # ==== COLORS (PASTIKAN KONSISTEN) ====
 RED="\e[1;31m"
