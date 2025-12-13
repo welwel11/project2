@@ -219,19 +219,10 @@ pasang_ssl() {
     print_install "Memasang SSL Pada Domain"
 
     domain=$(cat /root/domain)
-
-    # STOP SEMUA YANG PAKE PORT 80/443
-    systemctl stop nginx 2>/dev/null
-    systemctl stop haproxy 2>/dev/null
-    systemctl stop xray 2>/dev/null
-
-    fuser -k 80/tcp 2>/dev/null
-    fuser -k 443/tcp 2>/dev/null
-
     rm -rf /etc/xray/xray.key /etc/xray/xray.crt
     rm -rf /root/.acme.sh
 
-    sleep 2
+    systemctl stop nginx 2>/dev/null
 
     mkdir -p /root/.acme.sh
     curl -fsSL https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
@@ -239,16 +230,12 @@ pasang_ssl() {
 
     /root/.acme.sh/acme.sh --upgrade --auto-upgrade
     /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-
-    /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256 \
-      --force
-
+    /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256
     /root/.acme.sh/acme.sh --installcert -d "$domain" \
         --fullchainpath /etc/xray/xray.crt \
         --keypath /etc/xray/xray.key --ecc
 
     chmod 600 /etc/xray/xray.key
-
     print_success "SSL Certificate"
 }
 
@@ -361,15 +348,15 @@ udp_mini() {
 }
 
 # ===== SLOWDNS =====
-#ssh_slow() {
-#    clear
-#    print_install "Memasang modul SlowDNS Server"
-#    wget -q -O /tmp/nameserver "${REPO}files/nameserver"
-#    chmod +x /tmp/nameserver
-#    /tmp/nameserver | tee /root/install.log
-#    rm -f /tmp/nameserver
-#  print_success "SlowDNS"
-#}
+ssh_slow() {
+    clear
+    print_install "Memasang modul SlowDNS Server"
+    wget -q -O /tmp/nameserver "${REPO}files/nameserver"
+    chmod +x /tmp/nameserver
+    /tmp/nameserver | tee /root/install.log
+    rm -f /tmp/nameserver
+    print_success "SlowDNS"
+}
 
 # ===== SSHD =====
 ins_SSHD() {
