@@ -342,17 +342,6 @@ limit_ip() {
     print_success "Limit IP Service"
 }
 
-# ===== SLOWDNS =====
-ssh_slow() {
-    clear
-    print_install "Memasang modul SlowDNS Server"
-    wget -q -O /tmp/nameserver "${REPO}files/nameserver"
-    chmod +x /tmp/nameserver
-    /tmp/nameserver | tee /root/install.log
-    rm -f /tmp/nameserver
-    print_success "SlowDNS"
-}
-
 # ===== SSHD =====
 ins_SSHD() {
     clear
@@ -681,7 +670,6 @@ instal(){
     install_xray
     ssh_config
     limit_ip
-    ssh_slow
     ins_SSHD
     ins_dropbear
     ins_vnstat
