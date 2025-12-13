@@ -19,19 +19,6 @@ echo -e "${GREEN}loading...${NC}"
 sleep 1
 clear
 
-# ==== SYSTEM UPDATE ====
-apt update -y
-apt upgrade -y
-
-# ==== INSTALL BASIC DEPENDENCIES ====
-apt install -y ruby ruby-full gem wondershaper software-properties-common \
-curl wget unzip sudo net-tools iptables iptables-persistent chrony ntpdate \
-python3 python3-pip vim lsof tar zip p7zip-full bash-completion gnupg2 \
-ca-certificates build-essential make cmake git screen socat dnsutils \
-vnstat rclone msmtp-mta bsd-mailx netfilter-persistent openvpn easy-rsa
-
-clear
-
 # ==== REPO ====
 REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
 
@@ -697,7 +684,7 @@ instal(){
     pasang_domain
     pasang_ssl
     install_xray
-    ssh
+    ssh_config
     udp_mini
     ssh_slow
     ins_SSHD
