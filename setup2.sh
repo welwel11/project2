@@ -357,12 +357,31 @@ ins_SSHD() {
 ins_dropbear() {
     clear
     print_install "Menginstall Dropbear"
-    apt-get install dropbear -y > /dev/null 2>&1
-    wget -q -O /etc/default/dropbear "${REPO}config/dropbear.conf"
-    chmod +x /etc/default/dropbear
+
+    apt-get install -y dropbear
+
+    systemctl stop dropbear
+
+    cat > /etc/default/dropbear << EOF
+NO_START=0
+DROPBEAR_PORT=109
+DROPBEAR_EXTRA_ARGS="-p 143"
+DROPBEAR_BANNER="/etc/issue.net"
+EOF
+
+    echo "Welcome to Dropbear Server" > /etc/issue.net
+    chmod 644 /etc/default/dropbear
+
+    systemctl daemon-reexec
     systemctl restart dropbear
-    systemctl status dropbear --no-pager
-    print_success "Dropbear"
+
+    if systemctl is-active --quiet dropbear; then
+        print_success "Dropbear aktif (port 109 & 143)"
+    else
+        print_error "Dropbear gagal start"
+        systemctl status dropbear --no-pager
+        exit 1
+    fi
 }
 
 # ===== VNSTAT =====
