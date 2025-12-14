@@ -592,25 +592,42 @@ ins_epro() {
 
     mkdir -p /usr/local/share/xray
 
+    # === HENTIKAN WS JIKA ADA ===
+    systemctl stop ws 2>/dev/null
+    pkill ws 2>/dev/null
+    sleep 1
+
+    # === HAPUS BINARY LAMA ===
+    rm -f /usr/bin/ws
+
+    # === DOWNLOAD FILE ===
     wget -q -O /usr/bin/ws "${REPO}files/ws"
     wget -q -O /usr/bin/tun.conf "${REPO}config/tun.conf"
     wget -q -O /etc/systemd/system/ws.service "${REPO}files/ws.service"
 
+    # === SET PERMISSION ===
     chmod +x /usr/bin/ws
     chmod 644 /usr/bin/tun.conf
     chmod 644 /etc/systemd/system/ws.service
 
-    systemctl daemon-reexec
-    systemctl enable --now ws
+    # === RELOAD SYSTEMD ===
+    systemctl daemon-reload
 
+    # === ENABLE & START ===
+    systemctl enable ws
+    systemctl start ws
+
+    # === XRAY GEO FILE ===
     wget -q -O /usr/local/share/xray/geosite.dat \
       "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
     wget -q -O /usr/local/share/xray/geoip.dat \
       "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
 
+    # === FTPVPN TOOL ===
     wget -q -O /usr/sbin/ftvpn "${REPO}files/ftvpn"
     chmod +x /usr/sbin/ftvpn
 
+    # === FIREWALL ===
     netfilter-persistent save
     netfilter-persistent reload
 
