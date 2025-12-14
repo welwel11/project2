@@ -130,7 +130,7 @@ base_package() {
     apt dist-upgrade -y
 
     apt install -y \
-        zip pwgen openssl netcat socat cron bash-completion figlet \
+        zip pwgen openssl netcat-openbsd socat cron bash-completion figlet \
         ntpdate chrony sudo debconf-utils \
         speedtest-cli vnstat jq \
         curl wget lsof tar zip unzip p7zip-full \
