@@ -679,6 +679,7 @@ enable_services(){
 
 # ===== INSTALL ALL =====
 instal(){
+set -e
     clear
 
     restart_system
