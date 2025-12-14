@@ -220,19 +220,24 @@ pasang_ssl() {
 
     domain=$(cat /root/domain)
 
-    systemctl stop nginx 2>/dev/null
-    systemctl stop haproxy 2>/dev/null
-    systemctl stop xray 2>/dev/null
+    systemctl stop nginx || true
+    systemctl stop haproxy || true
+    systemctl stop xray || true
 
-    rm -rf /etc/xray/xray.key /etc/xray/xray.crt /root/.acme.sh
+    sleep 2
+    fuser -k 80/tcp || true
+    fuser -k 443/tcp || true
 
-    mkdir -p /root/.acme.sh
-    curl -fsSL https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
-    chmod +x /root/.acme.sh/acme.sh
+    rm -rf /etc/xray/xray.key /etc/xray/xray.crt ~/.acme.sh
 
-    /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-    /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256
-    /root/.acme.sh/acme.sh --installcert -d "$domain" \
+    curl https://get.acme.sh | sh
+
+    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+
+    ~/.acme.sh/acme.sh --issue -d "$domain" --standalone \
+        --keylength ec-256 --force --log
+
+    ~/.acme.sh/acme.sh --installcert -d "$domain" \
         --fullchainpath /etc/xray/xray.crt \
         --keypath /etc/xray/xray.key --ecc
 
