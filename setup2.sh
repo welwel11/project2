@@ -51,12 +51,15 @@ print_success() {
 
 # ==== XRAY DIRECTORY ====
 print_install "Membuat direktori xray"
-mkdir -p /etc/xray /var/log/xray /var/lib/kyt
-curl -s ifconfig.me > /etc/xray/ipvps
-touch /etc/xray/domain
-touch /var/log/xray/access.log /var/log/xray/error.log
-chown www-data:www-data /var/log/xray
-chmod 755 /var/log/xray
+    mkdir -p /etc/xray
+    curl -s ifconfig.me > /etc/xray/ipvps
+    touch /etc/xray/domain
+    mkdir -p /var/log/xray
+    chown www-data.www-data /var/log/xray
+    chmod +x /var/log/xray
+    touch /var/log/xray/access.log
+    touch /var/log/xray/error.log
+    mkdir -p /var/lib/kyt >/dev/null 2>&1
 
 # ==== RAM INFORMATION ====
 mem_used=0
@@ -125,29 +128,31 @@ nginx_install() {
 
 # ==== BASE PACKAGE ====
 base_package() {
+    apt install zip pwgen openssl netcat socat cron bash-completion -y
+    apt install figlet -y
     apt update -y
     apt upgrade -y
     apt dist-upgrade -y
-
-    apt install -y \
-        zip pwgen openssl netcat-openbsd socat cron bash-completion figlet \
-        ntpdate chrony sudo debconf-utils \
-        speedtest-cli vnstat jq \
-        curl wget lsof tar zip unzip p7zip-full \
-        python3 python3-pip ruby \
-        git screen socat dnsutils \
-        build-essential make cmake gcc g++ \
-        iptables iptables-persistent netfilter-persistent \
-        openvpn easy-rsa msmtp-mta bsd-mailx
-
+    systemctl enable chronyd
+    systemctl restart chronyd
     systemctl enable chrony
     systemctl restart chrony
-
+    chronyc sourcestats -v
+    chronyc tracking -v
+    apt install ntpdate -y
     ntpdate pool.ntp.org
-
-    apt remove --purge -y exim4 ufw firewalld
-    apt autoremove -y
-    apt clean
+    apt install sudo -y
+    sudo apt-get clean all
+    sudo apt-get autoremove -y
+    sudo apt-get install -y debconf-utils
+    sudo apt-get remove --purge exim4 -y
+    sudo apt-get remove --purge ufw firewalld -y
+    sudo apt-get install -y --no-install-recommends software-properties-common
+    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+    sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
+    print_success "Packet Yang Dibutuhkan"
+    
 }
 clear
 # ===== FUNGSI SETUP DOMAIN =====
@@ -217,69 +222,69 @@ restart_system() {
 pasang_ssl() {
     clear
     print_install "Memasang SSL Pada Domain"
-
+    rm -rf /etc/xray/xray.key
+    rm -rf /etc/xray/xray.crt
     domain=$(cat /root/domain)
-
-    systemctl stop nginx || true
-    systemctl stop haproxy || true
-    systemctl stop xray || true
-
-    sleep 2
-    fuser -k 80/tcp || true
-    fuser -k 443/tcp || true
-
-    rm -rf /etc/xray/xray.key /etc/xray/xray.crt ~/.acme.sh
-
-    curl https://get.acme.sh | sh
-
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-
-    ~/.acme.sh/acme.sh --issue -d "$domain" --standalone \
-        --keylength ec-256 --force --log
-
-    ~/.acme.sh/acme.sh --installcert -d "$domain" \
-        --fullchainpath /etc/xray/xray.crt \
-        --keypath /etc/xray/xray.key --ecc
-
-    chmod 600 /etc/xray/xray.key
-
-    systemctl start nginx
-    systemctl start haproxy
-
+    STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
+    rm -rf /root/.acme.sh
+    mkdir /root/.acme.sh
+    systemctl stop $STOPWEBSERVER
+    systemctl stop nginx
+    curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
+    chmod +x /root/.acme.sh/acme.sh
+    /root/.acme.sh/acme.sh --upgrade --auto-upgrade
+    /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+    /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
+    ~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+    chmod 777 /etc/xray/xray.key
     print_success "SSL Certificate"
 }
 
 # ===== BUAT FOLDER XRAY =====
 make_folder_xray() {
-    mkdir -p \
-        /etc/xray /etc/vmess /etc/vless /etc/trojan /etc/shadowsocks /etc/ssh /etc/bot \
-        /etc/user-create \
-        /etc/kyt/limit/{vmess,vless,trojan,ssh}/ip \
-        /etc/limit/{vmess,vless,trojan,ssh} \
-        /usr/bin/xray \
-        /var/log/xray \
-        /var/www/html
-
-    touch \
-        /etc/xray/domain \
-        /var/log/xray/access.log \
-        /var/log/xray/error.log \
-        /etc/vmess/.vmess.db \
-        /etc/vless/.vless.db \
-        /etc/trojan/.trojan.db \
-        /etc/shadowsocks/.shadowsocks.db \
-        /etc/ssh/.ssh.db \
-        /etc/bot/.bot.db \
-        /etc/user-create/user.log
-
-    chmod 755 /var/log/xray
-
-    echo "& plugin Account" >> /etc/vmess/.vmess.db
-    echo "& plugin Account" >> /etc/vless/.vless.db
-    echo "& plugin Account" >> /etc/trojan/.trojan.db
-    echo "& plugin Account" >> /etc/shadowsocks/.shadowsocks.db
-    echo "& plugin Account" >> /etc/ssh/.ssh.db
-}
+rm -rf /etc/vmess/.vmess.db
+    rm -rf /etc/vless/.vless.db
+    rm -rf /etc/trojan/.trojan.db
+    rm -rf /etc/shadowsocks/.shadowsocks.db
+    rm -rf /etc/ssh/.ssh.db
+    rm -rf /etc/bot/.bot.db
+    rm -rf /etc/user-create/user.log
+    mkdir -p /etc/bot
+    mkdir -p /etc/xray
+    mkdir -p /etc/vmess
+    mkdir -p /etc/vless
+    mkdir -p /etc/trojan
+    mkdir -p /etc/shadowsocks
+    mkdir -p /etc/ssh
+    mkdir -p /usr/bin/xray/
+    mkdir -p /var/log/xray/
+    mkdir -p /var/www/html
+    mkdir -p /etc/kyt/limit/vmess/ip
+    mkdir -p /etc/kyt/limit/vless/ip
+    mkdir -p /etc/kyt/limit/trojan/ip
+    mkdir -p /etc/kyt/limit/ssh/ip
+    mkdir -p /etc/limit/vmess
+    mkdir -p /etc/limit/vless
+    mkdir -p /etc/limit/trojan
+    mkdir -p /etc/limit/ssh
+    mkdir -p /etc/user-create
+    chmod +x /var/log/xray
+    touch /etc/xray/domain
+    touch /var/log/xray/access.log
+    touch /var/log/xray/error.log
+    touch /etc/vmess/.vmess.db
+    touch /etc/vless/.vless.db
+    touch /etc/trojan/.trojan.db
+    touch /etc/shadowsocks/.shadowsocks.db
+    touch /etc/ssh/.ssh.db
+    touch /etc/bot/.bot.db
+    echo "& plughin Account" >>/etc/vmess/.vmess.db
+    echo "& plughin Account" >>/etc/vless/.vless.db
+    echo "& plughin Account" >>/etc/trojan/.trojan.db
+    echo "& plughin Account" >>/etc/shadowsocks/.shadowsocks.db
+    echo "& plughin Account" >>/etc/ssh/.ssh.db
+    echo "echo -e 'Vps Config User Account'" >> /etc/user-create/user.log
+    }
 
 # ===== INSTALL XRAY =====
 install_xray() {
@@ -293,123 +298,168 @@ install_xray() {
     bash -c "$(curl -fsSL https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" \
         @ install -u www-data
 
-    wget -q -O /etc/xray/config.json "${REPO}config/config.json"
-    wget -q -O /etc/systemd/system/runn.service "${REPO}files/runn.service"
+    wget -O /etc/xray/config.json "${REPO}config/config.json" >/dev/null 2>&1
+    wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" >/dev/null 2>&1
 
-    domain=$(cat /etc/xray/domain 2>/dev/null)
+    domain=$(cat /etc/xray/domain)
 
     print_success "Core Xray"
 
-    curl -s ipinfo.io/city > /etc/xray/city
-    curl -s ipinfo.io/org | cut -d " " -f 2-10 > /etc/xray/isp
+    curl -s ipinfo.io/city >>/etc/xray/city
+    curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
 
-    print_install "Memasang Konfigurasi Packet"
-    wget -q -O /etc/haproxy/haproxy.cfg "${REPO}config/haproxy.cfg"
-    wget -q -O /etc/nginx/conf.d/xray.conf "${REPO}config/xray.conf"
+    wget -O /etc/haproxy/haproxy.cfg "${REPO}config/haproxy.cfg" >/dev/null 2>&1
+    wget -O /etc/nginx/conf.d/xray.conf "${REPO}config/xray.conf" >/dev/null 2>&1
     sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
     sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
-    curl -fsSL "${REPO}config/nginx.conf" > /etc/nginx/nginx.conf
+    curl ${REPO}config/nginx.conf > /etc/nginx/nginx.conf
+    
+cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
 
-    cat /etc/xray/xray.crt /etc/xray/xray.key > /etc/haproxy/hap.pem
-    chmod 600 /etc/haproxy/hap.pem
+    chmod +x /etc/systemd/system/runn.service
+    
+    rm -rf /etc/systemd/system/xray.service.d
+    cat >/etc/systemd/system/xray.service <<EOF
+Description=Xray Service
+Documentation=https://github.com
+After=network.target nss-lookup.target
 
-    chmod 644 /etc/systemd/system/runn.service
+[Service]
+User=www-data
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ExecStart=/usr/local/bin/xray run -config /etc/xray/config.json
+Restart=on-failure
+RestartPreventExitStatus=23
+LimitNPROC=10000
+LimitNOFILE=1000000
+
+[Install]
+WantedBy=multi-user.target
+
+EOF
     print_success "Konfigurasi Packet"
 }
 
 # ===== SSH CONFIG (RENAME) =====
 ssh_config() {
     clear
-    print_install "Konfigurasi SSH"
+wget -O /etc/pam.d/common-password "${REPO}files/password"
+chmod +x /etc/pam.d/common-password
 
-    wget -q -O /etc/pam.d/common-password "${REPO}files/password"
-    chmod 644 /etc/pam.d/common-password
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/altgr select The default for the keyboard layout"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/compose select No compose key"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/ctrl_alt_bksp boolean false"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layoutcode string de"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layout select English"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/modelcode string pc105"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/model select Generic 105-key (Intl) PC"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/optionscode string "
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/store_defaults_in_debconf_db boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/switch select No temporary switch"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/toggle select No toggling"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_config_layout boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_config_options boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_layout boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_options boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/variantcode string "
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/variant select English"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/xkb-keymap select "
 
-    sed -i 's/^AcceptEnv/#AcceptEnv/' /etc/ssh/sshd_config
+# go to root
+cd
 
-    sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    echo "net.ipv6.conf.all.disable_ipv6=1" > /etc/sysctl.d/99-disable-ipv6.conf
-    sysctl --system
+# Edit file /etc/systemd/system/rc-local.service
+cat > /etc/systemd/system/rc-local.service <<-END
+[Unit]
+Description=/etc/rc.local
+ConditionPathExists=/etc/rc.local
+[Service]
+Type=forking
+ExecStart=/etc/rc.local start
+TimeoutSec=0
+StandardOutput=tty
+RemainAfterExit=yes
+SysVStartPriority=99
+[Install]
+WantedBy=multi-user.target
+END
 
-    ln -fs /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
-    print_success "SSH Config"
+# Ubah izin akses
+chmod +x /etc/rc.local
+
+# enable rc local
+systemctl enable rc-local
+systemctl start rc-local.service
+
+# disable ipv6
+echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
+sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.local
+
+#update
+# set time GMT +7
+ln -fs /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
+
+# set locale
+sed -i 's/AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
+print_success "Password SSH"
 }
 
 # ===== LIMIT IP =====
 limit_ip() {
     clear
     print_install "Memasang Service Limit IP & Quota"
-
-    wget -q -O /tmp/fv-tunnel "${REPO}config/fv-tunnel"
-    chmod +x /tmp/fv-tunnel
-    /tmp/fv-tunnel
     
+wget -q https://raw.githubusercontent.com/welwel11/project2/main/config/fv-tunnel && chmod +x fv-tunnel && ./fv-tunnel
     print_success "Limit IP Service"
 }
 
 # ===== SSHD =====
 ins_SSHD() {
     clear
-    print_install "Memasang SSHD"
-    wget -q -O /etc/ssh/sshd_config "${REPO}files/sshd"
-    chmod 600 /etc/ssh/sshd_config
-    systemctl restart ssh
-    systemctl status ssh --no-pager
-    print_success "SSHD"
+wget -q -O /etc/ssh/sshd_config "${REPO}files/sshd" >/dev/null 2>&1
+chmod 700 /etc/ssh/sshd_config
+/etc/init.d/ssh restart
+systemctl restart ssh
+/etc/init.d/ssh status
+print_success "SSHD"
 }
 
 # ===== DROPBEAR =====
 ins_dropbear() {
     clear
     print_install "Menginstall Dropbear"
-
-    apt-get install -y dropbear
-
-    systemctl stop dropbear || true
-
-    cat > /etc/default/dropbear << EOF
-NO_START=0
-DROPBEAR_EXTRA_ARGS="-p 109 -p 143"
-DROPBEAR_BANNER="/etc/issue.net"
-EOF
-
-    echo "Welcome to Dropbear Server" > /etc/issue.net
-    chmod 644 /etc/default/dropbear
-    chmod 644 /etc/issue.net
-
-    systemctl daemon-reload
-    systemctl restart dropbear
-
-    if systemctl is-active --quiet dropbear; then
-        print_success "Dropbear aktif (port 109 & 143)"
-    else
-        print_error "Dropbear gagal start"
-        journalctl -xeu dropbear --no-pager | tail -20
-        exit 1
-    fi
+apt-get install dropbear -y > /dev/null 2>&1
+wget -q -O /etc/default/dropbear "${REPO}config/dropbear.conf"
+chmod +x /etc/default/dropbear
+/etc/init.d/dropbear restart
+/etc/init.d/dropbear status
+print_success "Dropbear"
 }
 
 # ===== VNSTAT =====
 ins_vnstat() {
     clear
     print_install "Menginstall Vnstat"
-
-    apt install -y vnstat
-
-    NET=$(ip route | awk '/default/ {print $5}')
-
-    systemctl stop vnstat
-    vnstat --add -i "$NET" 2>/dev/null || true
-    systemctl enable vnstat
-    systemctl restart vnstat
-
-    if systemctl is-active --quiet vnstat; then
-        print_success "Vnstat aktif (interface: $NET)"
-    else
-        print_error "Vnstat gagal start"
-        systemctl status vnstat --no-pager
-        exit 1
-    fi
+apt -y install vnstat > /dev/null 2>&1
+/etc/init.d/vnstat restart
+apt -y install libsqlite3-dev > /dev/null 2>&1
+wget https://humdi.net/vnstat/vnstat-2.6.tar.gz
+tar zxvf vnstat-2.6.tar.gz
+cd vnstat-2.6
+./configure --prefix=/usr --sysconfdir=/etc && make && make install
+cd
+vnstat -u -i $NET
+sed -i 's/Interface "'""eth0""'"/Interface "'""$NET""'"/g' /etc/vnstat.conf
+chown vnstat:vnstat /var/lib/vnstat -R
+systemctl enable vnstat
+/etc/init.d/vnstat restart
+/etc/init.d/vnstat status
+rm -f /root/vnstat-2.6.tar.gz
+rm -rf /root/vnstat-2.6
+print_success "Vnstat"
 }
 
 # ===== BACKUP SERVER =====
@@ -484,21 +534,19 @@ ins_swab() {
 ins_Fail2ban() {
     clear
     print_install "Menginstall Fail2ban"
+apt -y install fail2ban > /dev/null 2>&1
+sudo systemctl enable --now fail2ban
+/etc/init.d/fail2ban restart
+/etc/init.d/fail2ban status
 
-    apt install -y fail2ban
-    systemctl enable --now fail2ban
+clear
+# banner
+echo "Banner /etc/kyt.txt" >>/etc/ssh/sshd_config
+sed -i 's@DROPBEAR_BANNER=""@DROPBEAR_BANNER="/etc/kyt.txt"@g' /etc/default/dropbear
 
-    grep -q "^Banner /etc/kyt.txt" /etc/ssh/sshd_config || \
-        echo "Banner /etc/kyt.txt" >> /etc/ssh/sshd_config
-
-    sed -i 's@^DROPBEAR_BANNER=.*@DROPBEAR_BANNER="/etc/kyt.txt"@' /etc/default/dropbear
-
-    wget -q -O /etc/kyt.txt "${REPO}files/issue.net"
-
-    systemctl restart ssh
-    systemctl restart dropbear
-
-    print_success "Fail2ban"
+# Ganti Banner
+wget -O /etc/kyt.txt "${REPO}files/issue.net"
+print_success "Fail2ban"
 }
 
 # ===== EPRO =====
