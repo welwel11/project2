@@ -681,28 +681,28 @@ instal(){
     set -e
     clear
 
-    restart_system
-    first_setup
-    nginx_install
-    base_package
-    make_folder_xray
-    pasang_domain
-    pasang_ssl
-    install_xray
-    ssh_config
-    limit_ip
-    ins_SSHD
-    ins_dropbear
-    ins_vnstat
-    ins_backup
-    ins_swab
-    ins_Fail2ban
-    ins_epro
-    anti_ddos_basic
-    ins_restart
-    menu
-    profile
-    enable_services
+    run_safe "License Check" restart_system
+    run_safe "First Setup" first_setup
+    run_safe "Install Nginx" nginx_install
+    run_safe "Base Package" base_package
+    run_safe "Make Folder Xray" make_folder_xray
+    run_safe "Setup Domain" pasang_domain
+    run_safe "SSL Certificate" pasang_ssl
+    run_safe "Install Xray" install_xray
+    run_safe "SSH Config" ssh_config
+    run_safe "Limit IP" limit_ip
+    run_safe "SSHD" ins_SSHD
+    run_safe "Dropbear" ins_dropbear
+    run_safe "Vnstat" ins_vnstat
+    run_safe "Backup" ins_backup
+    run_safe "Swap" ins_swab
+    run_safe "Fail2ban" ins_Fail2ban
+    run_safe "ePro" ins_epro
+    run_safe "Anti DDOS" anti_ddos_basic
+    run_safe "Restart Services" ins_restart
+    run_safe "Menu" menu
+    run_safe "Profile" profile
+    run_safe "Enable Services" enable_services
 }
 
 instal
