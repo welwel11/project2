@@ -222,6 +222,7 @@ pasang_ssl() {
 
     systemctl stop nginx || true
     systemctl stop haproxy || true
+    systemctl stop xray || true
 
     sleep 2
     fuser -k 80/tcp || true
