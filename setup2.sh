@@ -222,7 +222,6 @@ pasang_ssl() {
 
     systemctl stop nginx || true
     systemctl stop haproxy || true
-    systemctl stop xray || true
 
     sleep 2
     fuser -k 80/tcp || true
@@ -365,26 +364,26 @@ ins_dropbear() {
 
     apt-get install -y dropbear
 
-    systemctl stop dropbear
+    systemctl stop dropbear || true
 
     cat > /etc/default/dropbear << EOF
 NO_START=0
-DROPBEAR_PORT=109
-DROPBEAR_EXTRA_ARGS="-p 143"
+DROPBEAR_EXTRA_ARGS="-p 109 -p 143"
 DROPBEAR_BANNER="/etc/issue.net"
 EOF
 
     echo "Welcome to Dropbear Server" > /etc/issue.net
     chmod 644 /etc/default/dropbear
+    chmod 644 /etc/issue.net
 
-    systemctl daemon-reexec
+    systemctl daemon-reload
     systemctl restart dropbear
 
     if systemctl is-active --quiet dropbear; then
         print_success "Dropbear aktif (port 109 & 143)"
     else
         print_error "Dropbear gagal start"
-        systemctl status dropbear --no-pager
+        journalctl -xeu dropbear --no-pager | tail -20
         exit 1
     fi
 }
