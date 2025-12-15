@@ -149,28 +149,54 @@ print_install "Membuat direktori xray"
 function first_setup(){
     timedatectl set-timezone Asia/Jakarta
 
-    # Disable IPv6 (AMAN & PERMANEN)
-    print_install "Disable IPv6"
+    print_install "Disable IPv6 Permanen"
+
+    # Sysctl config
     cat >/etc/sysctl.d/99-disable-ipv6.conf <<EOF
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1
 EOF
-    sysctl --system >/dev/null 2>&1
-    print_success "IPv6 Disabled"
 
+    # Systemd service
+    cat >/etc/systemd/system/disable-ipv6.service <<'EOF'
+[Unit]
+Description=Disable IPv6 Permanently
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/sysctl -p /etc/sysctl.d/99-disable-ipv6.conf
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable disable-ipv6.service
+    systemctl start disable-ipv6.service
+
+    print_success "IPv6 Disabled Permanently"
+
+    # iptables-persistent (IPv4 only)
     echo iptables-persistent iptables-persistent/autosave_v6 boolean false | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true  | debconf-set-selections
 
-    if [[ $(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"') == "ubuntu" ]]; then
+    # Install haproxy sesuai OS
+    OS_ID=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
+
+    if [[ "$OS_ID" == "ubuntu" ]]; then
         apt update -y
         apt install -y software-properties-common haproxy
-    elif [[ $(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"') == "debian" ]]; then
-        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor \
-            >/usr/share/keyrings/haproxy.debian.net.gpg
-        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-            http://haproxy.debian.net Bullseye-2.2 main \
+    elif [[ "$OS_ID" == "debian" ]]; then
+        curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor \
+            -o /usr/share/keyrings/haproxy.debian.net.gpg
+
+        echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] \
+http://haproxy.debian.net Bullseye-2.2 main" \
             >/etc/apt/sources.list.d/haproxy.list
+
         apt update -y
         apt install -y haproxy=2.2.*
     fi
