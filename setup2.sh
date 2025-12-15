@@ -159,20 +159,20 @@ EOF
     sysctl --system >/dev/null 2>&1
     print_success "IPv6 Disabled"
 
-    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean false | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v4 boolean true  | debconf-set-selections
 
-    if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
-        sudo apt update -y
-        apt-get install --no-install-recommends software-properties-common -y
-        apt-get update -y
-        apt-get install -y haproxy
-    elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
-        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
+    if [[ $(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"') == "ubuntu" ]]; then
+        apt update -y
+        apt install -y software-properties-common haproxy
+    elif [[ $(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"') == "debian" ]]; then
+        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor \
+            >/usr/share/keyrings/haproxy.debian.net.gpg
         echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-        http://haproxy.debian.net Bullseye-2.2 main \
-        >/etc/apt/sources.list.d/haproxy.list
-        apt-get update -y
-        apt-get install -y haproxy=2.2.*
+            http://haproxy.debian.net Bullseye-2.2 main \
+            >/etc/apt/sources.list.d/haproxy.list
+        apt update -y
+        apt install -y haproxy=2.2.*
     fi
 }
 
