@@ -642,36 +642,27 @@ print_success "OpenVPN"
 function ins_backup(){
 clear
 print_install "Memasang Backup Server"
-#BackupOption
-apt install rclone -y
-printf "q\n" | rclone config
-wget -O /root/.config/rclone/rclone.conf "${REPO}config/rclone.conf"
-#Install Wondershaper
-cd /bin
-git clone  https://github.com/magnific0/wondershaper.git
-cd wondershaper
-sudo make install
-cd
-rm -rf wondershaper
-echo > /home/limit
-apt install msmtp-mta ca-certificates bsd-mailx -y
-cat<<EOF>>/etc/msmtprc
-defaults
-tls on
-tls_starttls on
-tls_trust_file /etc/ssl/certs/ca-certificates.crt
 
-account default
-host smtp.gmail.com
-port 587
-auth on
-user oceantestdigital@gmail.com
-from oceantestdigital@gmail.com
-password jokerman77 
-logfile ~/.msmtp.log
-EOF
-chown -R www-data:www-data /etc/msmtprc
-wget -q -O /etc/ipserver "${REPO}files/ipserver" && bash /etc/ipserver
+# Install rclone
+apt update -y
+apt install -y rclone ca-certificates bsd-mailx
+
+# Buat direktori config rclone
+mkdir -p /root/.config/rclone
+
+# Ambil config rclone (jika memang dipakai)
+wget -q -O /root/.config/rclone/rclone.conf "${REPO}config/rclone.conf"
+
+# Permission aman
+chmod 600 /root/.config/rclone/rclone.conf
+
+# File limit (dipakai script lain, biarkan kosong)
+echo > /home/limit
+
+# Bersih-bersih
+apt autoremove -y
+apt autoclean -y
+
 print_success "Backup Server"
 }
 
