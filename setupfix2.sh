@@ -20,8 +20,6 @@ export IP=$( curl -sS icanhazip.com )
 
 # // Clear Data
 clear
-clear && clear && clear
-clear;clear;clear
 
 # // Banner
 echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -75,8 +73,6 @@ NC='\e[0m'
 #IZIN SCRIPT
 MYIP=$(curl -sS ipv4.icanhazip.com)
 echo -e "\e[32mloading...\e[0m"
-clear
-apt install wondershaper -y
 clear
 # REPO    
     REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
