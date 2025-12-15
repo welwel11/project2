@@ -1,100 +1,30 @@
 #!/bin/bash
 
-Green="\e[92;1m"
-RED="\033[31m"
+# ==== COLORS (PASTIKAN KONSISTEN) ====
+RED="\e[1;31m"
+GREEN="\e[0;32m"
 YELLOW="\033[33m"
 BLUE="\033[36m"
-FONT="\033[0m"
-GREENBG="\033[42;37m"
-REDBG="\033[41;37m"
-OK="${Green}  »${FONT}"
-ERROR="${RED}[ERROR]${FONT}"
 GRAY="\e[1;30m"
-NC='\e[0m'
-red='\e[1;31m'
-green='\e[0;32m'
+NC="\e[0m"
+FONT="\e[0m"
 
 clear
-# // Exporint IP AddressInformation
-export IP=$( curl -sS icanhazip.com )
+# ==== IP FIX (SATU SUMBER SAJA) ====
+MYIP="$IP"
 
-clear
-# // Banner
-echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "  » This Will Quick Setup VPN Server On Your Server"
-echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
-sleep 2
-###### IZIN SC 
-
-# // Checking Os Architecture
-if [[ $( uname -m | awk '{print $1}' ) == "x86_64" ]]; then
-    echo -e "${OK} Your Architecture Is Supported ( ${green}$( uname -m )${NC} )"
-else
-    echo -e "${EROR} Your Architecture Is Not Supported ( ${YELLOW}$( uname -m )${NC} )"
-    exit 1
-fi
-
-# // Checking System
-if [[ $( cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g' ) == "ubuntu" ]]; then
-    echo -e "${OK} Your OS Is Supported ( ${green}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
-elif [[ $( cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g' ) == "debian" ]]; then
-    echo -e "${OK} Your OS Is Supported ( ${green}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
-else
-    echo -e "${EROR} Your OS Is Not Supported ( ${YELLOW}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
-    exit 1
-fi
-
-# // IP Address Validating
-if [[ $IP == "" ]]; then
-    echo -e "${EROR} IP Address ( ${YELLOW}Not Detected${NC} )"
-else
-    echo -e "${OK} IP Address ( ${green}$IP${NC} )"
-fi
-
-# // Validate Successfull
-echo ""
-read -p "$( echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
-echo ""
-clear
-if [ "${EUID}" -ne 0 ]; then
-		echo "You need to run this script as root"
-		exit 1
-fi
-if [ "$(systemd-detect-virt)" == "openvz" ]; then
-		echo "OpenVZ is not supported"
-		exit 1
-fi
-red='\e[1;31m'
-green='\e[0;32m'
-NC='\e[0m'
-# ====IZIN SCRIPT
-MYIP=$(curl -sS ipv4.icanhazip.com)
-echo -e "\e[32mloading...\e[0m"
-clear
-apt install ruby -y
-gem install lolcat
-apt install wondershaper -y
-apt update -y && apt upgrade -y
-apt install -y software-properties-common curl wget unzip sudo net-tools iptables iptables-persistent \
-chrony ntpdate ruby-full python3 python3-pip vim lsof tar zip p7zip-full \
-bash-completion gnupg2 ca-certificates build-essential make cmake git screen socat dnsutils \
-vnstat rclone msmtp-mta bsd-mailx iptables-persistent netfilter-persistent openvpn easy-rsa
-clear
-# ==== REPO    
+# ==== REPO ====
     REPO="https://raw.githubusercontent.com/welwel11/project2/main/"
 
-# ====
+# ==== TIMER ====
 start=$(date +%s)
 secs_to_human() {
     echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
 }
-
-# ==== Status
+# ==== STATUS FUNCTIONS ====
 function print_ok() {
     echo -e "${OK} ${BLUE} $1 ${FONT}"
 }
-
 function print_install() {
 	echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
     echo -e "${YELLOW} » $1 ${FONT}"
@@ -113,16 +43,6 @@ function print_success() {
 		echo -e "${green} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ${FONT}"
         sleep 2
     fi
-}
-
-# ==== Cek root
-function is_root() {
-    if [[ 0 == "$UID" ]]; then
-        print_ok "Root user Start installation process"
-    else
-        print_error "The current user is not the root user, please switch to the root user and run the script again"
-    fi
-
 }
 
 # ==== XRAY DIRECTORY ====
@@ -417,31 +337,14 @@ print_success "Konfigurasi Packet"
 # ===== SSH CONFIG =====
 clear
 function ssh(){
+clear
 print_install "Memasang Password SSH"
+
 wget -O /etc/pam.d/common-password "${REPO}files/password"
-chmod +x /etc/pam.d/common-password
+chmod 644 /etc/pam.d/common-password
 
-    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/altgr select The default for the keyboard layout"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/compose select No compose key"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/ctrl_alt_bksp boolean false"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layoutcode string de"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layout select English"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/modelcode string pc105"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/model select Generic 105-key (Intl) PC"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/optionscode string "
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/store_defaults_in_debconf_db boolean true"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/switch select No temporary switch"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/toggle select No toggling"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_config_layout boolean true"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_config_options boolean true"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_layout boolean true"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_options boolean true"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/variantcode string "
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/variant select English"
-    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/xkb-keymap select "
+DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
 
-# ===== go to root =====
 cd
 
 cat > /etc/systemd/system/rc-local.service <<-END
@@ -460,25 +363,21 @@ WantedBy=multi-user.target
 END
 
 cat > /etc/rc.local <<-END
+#!/bin/sh -e
+echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
 exit 0
 END
 
-# ===== Ubah izin akses =====
 chmod +x /etc/rc.local
-
-# ===== enable rc local =====
+systemctl daemon-reload
 systemctl enable rc-local
 systemctl start rc-local.service
 
-# ===== disable ipv6 =====
-echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
-sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.local
-
-# ===== Update waktu  =====
 ln -fs /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
 
-# ===== set locale =====
-sed -i 's/AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
+sed -i 's/^AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
+systemctl restart ssh
+
 print_success "Password SSH"
 }
 
