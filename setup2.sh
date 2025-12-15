@@ -337,14 +337,31 @@ print_success "Konfigurasi Packet"
 # ===== SSH CONFIG =====
 clear
 function ssh(){
-clear
 print_install "Memasang Password SSH"
-
 wget -O /etc/pam.d/common-password "${REPO}files/password"
-chmod 644 /etc/pam.d/common-password
+chmod +x /etc/pam.d/common-password
 
-DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/altgr select The default for the keyboard layout"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/compose select No compose key"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/ctrl_alt_bksp boolean false"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layoutcode string de"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layout select English"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/modelcode string pc105"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/model select Generic 105-key (Intl) PC"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/optionscode string "
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/store_defaults_in_debconf_db boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/switch select No temporary switch"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/toggle select No toggling"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_config_layout boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_config_options boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_layout boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_options boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/variantcode string "
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/variant select English"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/xkb-keymap select "
 
+# ===== go to root =====
 cd
 
 cat > /etc/systemd/system/rc-local.service <<-END
@@ -363,21 +380,25 @@ WantedBy=multi-user.target
 END
 
 cat > /etc/rc.local <<-END
-#!/bin/sh -e
-echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
 exit 0
 END
 
+# ===== Ubah izin akses =====
 chmod +x /etc/rc.local
-systemctl daemon-reload
+
+# ===== enable rc local =====
 systemctl enable rc-local
 systemctl start rc-local.service
 
+# ===== disable ipv6 =====
+echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
+sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.local
+
+# ===== Update waktu  =====
 ln -fs /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
 
-sed -i 's/^AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
-systemctl restart ssh
-
+# ===== set locale =====
+sed -i 's/AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
 print_success "Password SSH"
 }
 
@@ -748,8 +769,8 @@ print_install "Enable Service"
 }
 
 # ===== INSTALL ALL =====
-clear
 function instal(){
+clear
     first_setup
     nginx_install
     base_package
