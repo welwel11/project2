@@ -269,6 +269,7 @@ function firewall_setup() {
 clear
 print_install "Firewall Hardening (iptables)"
 
+# Flush rules
 iptables -F
 iptables -X
 
@@ -280,28 +281,42 @@ iptables -P OUTPUT ACCEPT
 # Loopback
 iptables -A INPUT -i lo -j ACCEPT
 
-# Established
+# Established & Related
 iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
-# SSH (limit brute force)
+# Drop INVALID
+iptables -A INPUT -m conntrack --ctstate INVALID -j DROP
+
+# SSH brute force protection
 iptables -A INPUT -p tcp --dport 22 -m connlimit --connlimit-above 3 -j DROP
 iptables -A INPUT -p tcp --dport 22 -j ACCEPT
 
-# Web
+# Web / VPN (HTTP, HTTPS)
 iptables -A INPUT -p tcp --dport 80 -j ACCEPT
 iptables -A INPUT -p tcp --dport 443 -j ACCEPT
-
-# Drop invalid
-iptables -A INPUT -m conntrack --ctstate INVALID -j DROP
 
 # SYN flood protection
 iptables -A INPUT -p tcp --syn -m limit --limit 2/s --limit-burst 10 -j ACCEPT
 
+# ---- ZiVPN UDP
+iptables -A INPUT -p udp --dport 5667 -j ACCEPT
+iptables -A INPUT -p udp --dport 6000:19999 -j ACCEPT
+
+# ---- HTTP Custom UDP
+iptables -A INPUT -p udp --dport 1:65535 \
+    -m conntrack --ctstate NEW \
+    -m limit --limit 30/sec --limit-burst 100 \
+    -j ACCEPT
+
+# Drop UDP flood
+iptables -A INPUT -p udp -m conntrack --ctstate NEW -j DROP
+
+# SAVE RULES
 iptables-save > /etc/iptables.up.rules
 netfilter-persistent save
 netfilter-persistent reload
 
-print_success "Firewall Active"
+print_success "Firewall Active (TCP + UDP Protected)"
 }
 
 clear
