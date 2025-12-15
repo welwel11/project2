@@ -643,25 +643,39 @@ function ins_backup(){
 clear
 print_install "Memasang Backup Server"
 
-# Install rclone
-apt update -y
-apt install -y rclone ca-certificates bsd-mailx
+# Backup Option
+apt install rclone -y
+printf "q\n" | rclone config
+wget -O /root/.config/rclone/rclone.conf "${REPO}config/rclone.conf"
 
-# Buat direktori config rclone
-mkdir -p /root/.config/rclone
-
-# Ambil config rclone (jika memang dipakai)
-wget -q -O /root/.config/rclone/rclone.conf "${REPO}config/rclone.conf"
-
-# Permission aman
-chmod 600 /root/.config/rclone/rclone.conf
-
-# File limit (dipakai script lain, biarkan kosong)
+# Install Wondershaper
+cd /bin
+git clone https://github.com/magnific0/wondershaper.git
+cd wondershaper
+sudo make install
+cd
+rm -rf wondershaper
 echo > /home/limit
 
-# Bersih-bersih
-apt autoremove -y
-apt autoclean -y
+# Email notification
+apt install msmtp-mta ca-certificates bsd-mailx -y
+cat <<EOF >> /etc/msmtprc
+defaults
+tls on
+tls_starttls on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+
+account default
+host smtp.gmail.com
+port 587
+auth on
+user oceantestdigital@gmail.com
+from oceantestdigital@gmail.com
+password jokerman77
+logfile ~/.msmtp.log
+EOF
+
+chown -R www-data:www-data /etc/msmtprc
 
 print_success "Backup Server"
 }
