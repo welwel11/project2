@@ -20,6 +20,8 @@ export IP=$( curl -sS icanhazip.com )
 
 # // Clear Data
 clear
+clear && clear && clear
+clear;clear;clear
 
 # // Banner
 echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
