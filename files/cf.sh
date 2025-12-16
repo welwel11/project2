@@ -26,12 +26,12 @@ PREFIX=${PREFIXES[$RANDOM % ${#PREFIXES[@]}]}
 NUM=$(shuf -i 10-999 -n 1)
 
 # Gabungkan menjadi subdomain
-DOMAIN=jnstorevpn.biz.id
+DOMAIN=jnstoresg6.biz.id
 SUB_DOMAIN="${PREFIX}${NUM}.${DOMAIN}"
 
 # Cloudflare credentials
-CF_ID=jonijoni199210@gmail.com
-CF_KEY=b3179931dedce6aaad8692d44422639b81921
+CF_ID=boxfur725@owleyes.ch
+CF_KEY=abaa91ed602fc5ec598c46942871b3184ebdc
 
 set -euo pipefail
 IP=$(curl -sS ifconfig.me)
