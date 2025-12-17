@@ -229,7 +229,7 @@ function base_package() {
                    ntpdate debconf-utils speedtest-cli vnstat net-tools iptables \
                    iptables-persistent netfilter-persistent curl wget jq \
                    build-essential gcc g++ make cmake git screen socat xz-utils \
-                   apt-transport-https dnsutils chrony openvpn easy-rsa
+                   apt-transport-https dnsutils chrony
 
     apt upgrade -y
     apt dist-upgrade -y
@@ -557,41 +557,16 @@ systemctl restart ssh
 print_success "Password SSH"
 }
 
-function udp_mini(){
+function limit_ip_service(){
 clear
 print_install "Memasang Service Limit IP & Quota"
-wget -q https://raw.githubusercontent.com/welwel11/project2/main/config/fv-tunnel && chmod +x fv-tunnel && ./fv-tunnel
 
-# // Installing UDP Mini
-mkdir -p /usr/local/kyt/
-wget -q -O /usr/local/kyt/udp-mini "${REPO}files/udp-mini"
-chmod +x /usr/local/kyt/udp-mini
-wget -q -O /etc/systemd/system/udp-mini-1.service "${REPO}files/udp-mini-1.service"
-wget -q -O /etc/systemd/system/udp-mini-2.service "${REPO}files/udp-mini-2.service"
-wget -q -O /etc/systemd/system/udp-mini-3.service "${REPO}files/udp-mini-3.service"
-systemctl disable udp-mini-1
-systemctl stop udp-mini-1
-systemctl enable udp-mini-1
-systemctl start udp-mini-1
-systemctl disable udp-mini-2
-systemctl stop udp-mini-2
-systemctl enable udp-mini-2
-systemctl start udp-mini-2
-systemctl disable udp-mini-3
-systemctl stop udp-mini-3
-systemctl enable udp-mini-3
-systemctl start udp-mini-3
+# Install Limit IP / Quota Service saja
+wget -q https://raw.githubusercontent.com/welwel11/project2/main/config/fv-tunnel \
+     && chmod +x fv-tunnel \
+     && ./fv-tunnel
+
 print_success "Limit IP Service"
-}
-
-function ssh_slow(){
-clear
-# // Installing UDP Mini
-print_install "Memasang modul SlowDNS Server"
-    wget -q -O /tmp/nameserver "${REPO}files/nameserver" >/dev/null 2>&1
-    chmod +x /tmp/nameserver
-    bash /tmp/nameserver | tee /root/install.log
- print_success "SlowDNS"
 }
 
 clear
@@ -641,14 +616,6 @@ systemctl enable vnstat
 rm -f /root/vnstat-2.6.tar.gz
 rm -rf /root/vnstat-2.6
 print_success "Vnstat"
-}
-
-function ins_openvpn(){
-clear
-print_install "Menginstall OpenVPN"
-wget ${REPO}files/openvpn &&  chmod +x openvpn && ./openvpn
-/etc/init.d/openvpn restart
-print_success "OpenVPN"
 }
 
 function ins_backup(){
@@ -929,8 +896,7 @@ clear
     pasang_ssl
     install_xray
     ssh
-    udp_mini
-    ssh_slow
+    limit_ip_service
     ins_SSHD
     ins_dropbear
     ins_vnstat
