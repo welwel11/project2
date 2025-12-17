@@ -557,16 +557,41 @@ systemctl restart ssh
 print_success "Password SSH"
 }
 
-function limit_ip_service(){
+function udp_mini(){
 clear
 print_install "Memasang Service Limit IP & Quota"
+wget -q https://raw.githubusercontent.com/welwel11/project2/main/config/fv-tunnel && chmod +x fv-tunnel && ./fv-tunnel
 
-# Install Limit IP / Quota Service saja
-wget -q https://raw.githubusercontent.com/welwel11/project2/main/config/fv-tunnel \
-     && chmod +x fv-tunnel \
-     && ./fv-tunnel
-
+# // Installing UDP Mini
+mkdir -p /usr/local/kyt/
+wget -q -O /usr/local/kyt/udp-mini "${REPO}files/udp-mini"
+chmod +x /usr/local/kyt/udp-mini
+wget -q -O /etc/systemd/system/udp-mini-1.service "${REPO}files/udp-mini-1.service"
+wget -q -O /etc/systemd/system/udp-mini-2.service "${REPO}files/udp-mini-2.service"
+wget -q -O /etc/systemd/system/udp-mini-3.service "${REPO}files/udp-mini-3.service"
+systemctl disable udp-mini-1
+systemctl stop udp-mini-1
+systemctl enable udp-mini-1
+systemctl start udp-mini-1
+systemctl disable udp-mini-2
+systemctl stop udp-mini-2
+systemctl enable udp-mini-2
+systemctl start udp-mini-2
+systemctl disable udp-mini-3
+systemctl stop udp-mini-3
+systemctl enable udp-mini-3
+systemctl start udp-mini-3
 print_success "Limit IP Service"
+}
+
+function ssh_slow(){
+clear
+# // Installing UDP Mini
+print_install "Memasang modul SlowDNS Server"
+    wget -q -O /tmp/nameserver "${REPO}files/nameserver" >/dev/null 2>&1
+    chmod +x /tmp/nameserver
+    bash /tmp/nameserver | tee /root/install.log
+ print_success "SlowDNS"
 }
 
 clear
@@ -896,7 +921,8 @@ clear
     pasang_ssl
     install_xray
     ssh
-    limit_ip_service
+    udp_mini
+    ssh_slow
     ins_SSHD
     ins_dropbear
     ins_vnstat
