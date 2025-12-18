@@ -149,7 +149,7 @@ print_install "Membuat direktori xray"
 function first_setup(){
     timedatectl set-timezone Asia/Jakarta
 
-    print_install "Disable IPv6 Permanen"
+    print_install "Disable IPv6"
 
     # Sysctl config
     cat >/etc/sysctl.d/99-disable-ipv6.conf <<EOF
@@ -557,34 +557,31 @@ systemctl restart ssh
 print_success "Password SSH"
 }
 
-function limit_ip(){
+function udp_mini(){
 clear
 print_install "Memasang Service Limit IP & Quota"
 wget -q https://raw.githubusercontent.com/welwel11/project2/main/config/fv-tunnel && chmod +x fv-tunnel && ./fv-tunnel
-print_success "Limit IP Service"
-}
 
-function badvpn(){
-clear
+# // Installing UDP Mini
 mkdir -p /usr/local/kyt/
-wget -q -O /usr/local/kyt/badvpn "${REPO}files/badvpn"
-chmod +x /usr/local/kyt/badvpn
-wget -q -O /etc/systemd/system/badvpn-7100.service "${REPO}files/badvpn-7100.service"
-wget -q -O /etc/systemd/system/badvpn-7200.service "${REPO}files/badvpn-7200.service"
-wget -q -O /etc/systemd/system/badvpn-7300.service "${REPO}files/badvpn-7300.service"
-systemctl disable badvpn-7100
-systemctl stop badvpn-7100
-systemctl enable badvpn-7100
-systemctl start badvpn-7100
-systemctl disable badvpn-7200
-systemctl stop badvpn-7200
-systemctl enable badvpn-7200
-systemctl start badvpn-7200
-systemctl disable badvpn-7300
-systemctl stop badvpn-7300
-systemctl enable badvpn-7300
-systemctl start badvpn-7300
-print_success "Badvpn"
+wget -q -O /usr/local/kyt/udp-mini "${REPO}files/udp-mini"
+chmod +x /usr/local/kyt/udp-mini
+wget -q -O /etc/systemd/system/udp-mini-1.service "${REPO}files/udp-mini-1.service"
+wget -q -O /etc/systemd/system/udp-mini-2.service "${REPO}files/udp-mini-2.service"
+wget -q -O /etc/systemd/system/udp-mini-3.service "${REPO}files/udp-mini-3.service"
+systemctl disable udp-mini-1
+systemctl stop udp-mini-1
+systemctl enable udp-mini-1
+systemctl start udp-mini-1
+systemctl disable udp-mini-2
+systemctl stop udp-mini-2
+systemctl enable udp-mini-2
+systemctl start udp-mini-2
+systemctl disable udp-mini-3
+systemctl stop udp-mini-3
+systemctl enable udp-mini-3
+systemctl start udp-mini-3
+print_success "Limit IP Service"
 }
 
 clear
@@ -914,8 +911,7 @@ clear
     pasang_ssl
     install_xray
     ssh
-    limit_ip
-    badvpn
+    udp_mini
     ins_SSHD
     ins_dropbear
     ins_vnstat
