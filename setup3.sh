@@ -820,6 +820,7 @@ cat >/etc/cron.d/xp_all <<-END
 		SHELL=/bin/sh
 		PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 		0 3 * * * root /sbin/reboot
+		0 15 * * * root /sbin/reboot
 	END
     cat >/etc/cron.d/limit_ip <<-END
 		SHELL=/bin/sh
