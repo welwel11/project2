@@ -184,22 +184,30 @@ EOF
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true  | debconf-set-selections
 
     # Install haproxy sesuai OS
-    OS_ID=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
+OS_ID=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
 
-    if [[ "$OS_ID" == "ubuntu" ]]; then
-        apt update -y
-        apt install -y software-properties-common haproxy
-    elif [[ "$OS_ID" == "debian" ]]; then
-        curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor \
-            -o /usr/share/keyrings/haproxy.debian.net.gpg
+if [[ "$OS_ID" == "ubuntu" ]]; then
+    apt update -y
+    apt install -y software-properties-common haproxy
 
-        echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] \
-http://haproxy.debian.net bullseye-backports-2.4" \
-            >/etc/apt/sources.list.d/haproxy.list
+elif [[ "$OS_ID" == "debian" ]]; then
+    # pastikan dependency ada
+    apt update -y
+    apt install -y ca-certificates curl gnupg2
 
-        apt update -y
-        apt install -y haproxy=2.4.*
-    fi
+    rm -f /etc/apt/sources.list.d/haproxy.list
+    rm -f /usr/share/keyrings/haproxy.debian.net.gpg
+
+    curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor \
+        -o /usr/share/keyrings/haproxy.debian.net.gpg
+
+    echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net bullseye-backports-2.4 main" \
+        > /etc/apt/sources.list.d/haproxy.list
+
+    apt update -y
+    apt install -y haproxy=2.4.*
+
+fi
 }
 
 # GEO PROJECT
