@@ -194,7 +194,7 @@ EOF
             -o /usr/share/keyrings/haproxy.debian.net.gpg
 
         echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] \
-http://haproxy.debian.net Bullseye-2.2 main" \
+http://haproxy.debian.net bullseye-backports-2.4" \
             >/etc/apt/sources.list.d/haproxy.list
 
         apt update -y
