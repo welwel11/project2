@@ -198,7 +198,7 @@ http://haproxy.debian.net bullseye-backports-2.4" \
             >/etc/apt/sources.list.d/haproxy.list
 
         apt update -y
-        apt install -y haproxy=2.2.*
+        apt install -y haproxy=2.4.*
     fi
 }
 
